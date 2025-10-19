@@ -14,11 +14,11 @@ public class ContenedorDTO {
         return volumen;
     }
 
-    public Integer getId_Estado() {
+    public Integer getId_estado() {
         return id_estado;
     }
 
-    public Integer getId_Cliente() {
+    public Integer getId_cliente() {
         return id_cliente;
     }
 

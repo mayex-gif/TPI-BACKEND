@@ -33,8 +33,8 @@ public class ContenedorService {
     }
 
     public Contenedor guardar(ContenedorDTO dto) {
-        Estado estado = estadoRepository.findById(dto.getId_Estado()).orElseThrow();
-        Cliente cliente = clienteRepository.findById(dto.getId_Cliente()).orElseThrow();
+        Estado estado = estadoRepository.findById(dto.getId_estado()).orElseThrow();
+        Cliente cliente = clienteRepository.findById(dto.getId_cliente()).orElseThrow();
 
         Contenedor.Volumen volumenEnum;
         try {
@@ -53,7 +53,7 @@ public class ContenedorService {
 
     public Contenedor actualizarEstado(Integer idContenedor, ContenedorDTO dto) {
         Contenedor contenedor = contenedorRepository.findById(idContenedor).orElseThrow();
-        Estado estado = estadoRepository.findById(dto.getId_Estado()).orElseThrow();
+        Estado estado = estadoRepository.findById(dto.getId_estado()).orElseThrow();
 
         contenedor.setEstado(estado);
         return contenedorRepository.save(contenedor);

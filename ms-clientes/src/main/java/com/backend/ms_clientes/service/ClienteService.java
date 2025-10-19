@@ -1,5 +1,6 @@
 package com.backend.ms_clientes.service;
 
+import com.backend.ms_clientes.dto.ClienteDTO;
 import com.backend.ms_clientes.model.Cliente;
 import com.backend.ms_clientes.repository.ClienteRepository;
 import org.springframework.stereotype.Service;
@@ -23,7 +24,8 @@ public class ClienteService {
         return clienteRepository.findById(id).orElse(null);
     }
 
-    public Cliente guardar(Cliente cliente) {
+    public Cliente guardar(ClienteDTO dto) {
+        Cliente cliente = new Cliente(dto.getNombre(), dto.getApellido(), dto.getEmail(), dto.getTelefono());
         return clienteRepository.save(cliente);
     }
 

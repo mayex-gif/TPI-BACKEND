@@ -35,7 +35,7 @@ public class Solicitud {
     private Double tiempo_real;
 
     public Solicitud() {}
-    private Solicitud(Cliente cliente, Contenedor contenedor, Estado estado, Double costo_estimado, Double tiempo_estimado, Double costo_final, Double tiempo_real) {
+    public Solicitud(Cliente cliente, Contenedor contenedor, Estado estado, Double costo_estimado, Double tiempo_estimado, Double costo_final, Double tiempo_real) {
         this.cliente = cliente;
         this.contenedor = contenedor;
         this.estado = estado;
@@ -45,4 +45,63 @@ public class Solicitud {
         this.tiempo_real = tiempo_real;
     }
 
+    public int getId_solicitud() {
+        return id_solicitud;
+    }
+
+    public Cliente getCliente() {
+        return cliente;
+    }
+
+    public Contenedor getContenedor() {
+        return contenedor;
+    }
+
+    public Estado getEstado() {
+        return estado;
+    }
+
+    public Double getCosto_estimado() {
+        return costo_estimado;
+    }
+
+    public Double getTiempo_estimado() {
+        return tiempo_estimado;
+    }
+
+    public Double getCosto_final() {
+        return costo_final;
+    }
+
+    public Double getTiempo_real() {
+        return tiempo_real;
+    }
+
+    public void setCliente(Cliente cliente) {
+        this.cliente = cliente;
+    }
+
+    public void setContenedor(Contenedor contenedor) {
+        this.contenedor = contenedor;
+    }
+
+    public void setEstado(Estado estado) {
+        this.estado = estado;
+    }
+
+    public void setCosto_estimado(Double costo_estimado) {
+        this.costo_estimado = costo_estimado;
+    }
+
+    public void setTiempo_estimado(Double tiempo_estimado) {
+        this.tiempo_estimado = tiempo_estimado;
+    }
+
+    public void setCosto_final(Double costo_final) {
+        this.costo_final = costo_final;
+    }
+
+    public void setTiempo_real(Double tiempo_real) {
+        this.tiempo_real = tiempo_real;
+    }
 }
