@@ -24,8 +24,7 @@ public class ClienteService {
         return clienteRepository.findById(id).orElse(null);
     }
 
-    public Cliente guardar(ClienteDTO dto) {
-        Cliente cliente = new Cliente(dto.getNombre(), dto.getApellido(), dto.getEmail(), dto.getTelefono());
+    public Cliente guardar(Cliente cliente) {
         return clienteRepository.save(cliente);
     }
 

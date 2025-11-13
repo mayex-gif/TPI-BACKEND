@@ -10,7 +10,7 @@ public class Cliente {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "ID_CLIENTE")
-    private int id_cliente;
+    private Integer id_cliente;
 
     @Column(name = "NOMBRE")
     private String nombre;
@@ -38,7 +38,7 @@ public class Cliente {
         this.telefono = telefono;
     }
 
-    public int getId_cliente() {
+    public Integer getId_cliente() {
         return id_cliente;
     }
 

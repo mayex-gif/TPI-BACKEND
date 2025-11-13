@@ -32,20 +32,15 @@ public class SolicitudController {
         return solicitudService.guardar(dto);
     }
 
-    @PatchMapping("/{id}")
+    @PatchMapping("/{id}/estado")
     public Solicitud actualizarEstado(@PathVariable int id, @RequestBody SolicitudDTO dto) {
         return solicitudService.actualizarEstado(id, dto);
     }
 
-//    @PatchMapping("/{id}")
-//    public Solicitud actualizarEstado(@PathVariable int id, @RequestBody SolicitudDTO dto) {
-//        return solicitudService.actualizarEstado(id, dto);
-//    }
-
-//    @PatchMapping("/{id}")
-//    public Solicitud actualizarCostoFinalYTiempoReal(@PathVariable int id, @RequestBody SolicitudDTO dto) {
-//        return solicitudService.actualizarCostoFinalYTiempoReal(id, dto);
-//    }
+    @PatchMapping("/{id}/resultado")
+    public Solicitud actualizarCostoFinalYTiempoReal(@PathVariable int id, @RequestBody SolicitudDTO dto) {
+        return solicitudService.actualizarCostoFinalYTiempoReal(id, dto);
+    }
 
     @DeleteMapping("/{id}")
     public void eliminar(@PathVariable int id) {

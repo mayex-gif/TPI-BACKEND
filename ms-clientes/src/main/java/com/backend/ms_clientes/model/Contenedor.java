@@ -8,7 +8,7 @@ public class Contenedor {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "ID_CONTENEDOR")
-    private int id_contenedor;
+    private Integer id_contenedor;
 
     @Column(name = "PESO")
     private Double peso;
@@ -35,7 +35,7 @@ public class Contenedor {
         this.cliente = cliente;
     }
 
-    public int getId_contenedor() {
+    public Integer getId_contenedor() {
         return id_contenedor;
     }
 

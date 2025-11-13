@@ -8,7 +8,7 @@ public class Estado {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "ID_ESTADO")
-    private int id_estado;
+    private Integer id_estado;
 
     @Column(name = "AMBITO")
     private String ambito;
@@ -22,7 +22,7 @@ public class Estado {
         this.descripcion = descripcion;
     }
 
-    public int getId_estado() {
+    public Integer getId_estado() {
         return id_estado;
     }
 

@@ -8,7 +8,7 @@ public class Solicitud {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "ID_SOLICITUD")
-    private int id_solicitud;
+    private Integer id_solicitud;
 
     @ManyToOne
     @JoinColumn(name = "ID_CLIENTE")
@@ -45,7 +45,7 @@ public class Solicitud {
         this.tiempo_real = tiempo_real;
     }
 
-    public int getId_solicitud() {
+    public Integer getId_solicitud() {
         return id_solicitud;
     }
 
