@@ -1,0 +1,51 @@
+# ==========================================================
+# 1. IGNORAR DIRECTORIOS DE COMPILACIÓN EN CUALQUIER LUGAR (Maven/Gradle)
+# ==========================================================
+
+osrm-data
+ms-tarifas/
+apigateway/
+
+# Ignora la carpeta 'target' de Maven/Spring Boot en cualquier MS
+**/target/
+
+# Ignora la carpeta 'build' de Gradle/Spring Boot en cualquier MS
+**/build/
+
+# Ignora la carpeta de wrappers de Maven (si está dentro del MS)
+**/.mvn/
+
+# Ignora los archivos de artefacto compilados
+*.jar
+*.war
+*.zip
+*.tar.gz
+
+
+# ==========================================================
+# 2. IGNORAR CONFIGURACIONES DE ENTORNO LOCAL E IDE
+# ==========================================================
+# IntelliJ IDEA
+.idea/
+*.iml
+
+# VS Code
+.vscode/
+
+# Eclipse
+.classpath
+.project
+.settings/
+
+# Archivos de logs y temporales
+*.log
+temp/
+
+# ==========================================================
+# 3. IGNORAR VOLÚMENES Y DATOS DE DOCKER/MYSQL
+# ==========================================================
+# Archivos de volúmenes locales usados por Docker Compose
+osrm-data/
+volumes/
+clientes_data/ # Si definiste volúmenes nombrados fuera del compose (menos común)
+logistica_data/ # Si definiste volúmenes nombrados fuera del compose (menos común)

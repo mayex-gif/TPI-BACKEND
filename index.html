@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel de Pruebas - Microservicios</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .tab-active { background: #3b82f6; color: white; }
+        .tab-inactive { background: white; }
+        .tab-inactive:hover { background: #f3f4f6; }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen p-6">
+    <div class="max-w-7xl mx-auto">
+        <header class="bg-white rounded-lg shadow-lg p-6 mb-6">
+            <h1 class="text-3xl font-bold text-gray-800 mb-2">🚀 Panel de Pruebas - Microservicios</h1>
+            <p class="text-gray-600">ms-clientes (8081) | ms-logistica (8082) | OSRM (5000)</p>
+        </header>
+
+        <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+            <!-- Sidebar -->
+            <div class="lg:col-span-1">
+                <nav class="bg-white rounded-lg shadow-lg p-4 sticky top-6">
+                    <h2 class="font-bold text-gray-700 mb-4 text-sm uppercase">ms-clientes</h2>
+                    <button onclick="changeTab('clientes')" id="tab-clientes" class="w-full text-left px-4 py-2 rounded mb-2 tab-active">
+                        👥 Clientes
+                    </button>
+
+                    <h2 class="font-bold text-gray-700 mb-4 mt-6 text-sm uppercase">ms-logistica</h2>
+                    <button onclick="changeTab('camiones')" id="tab-camiones" class="w-full text-left px-4 py-2 rounded mb-2 tab-inactive">
+                        🚛 Camiones
+                    </button>
+                    <button onclick="changeTab('depositos')" id="tab-depositos" class="w-full text-left px-4 py-2 rounded mb-2 tab-inactive">
+                        🏭 Depósitos
+                    </button>
+                    <button onclick="changeTab('estados')" id="tab-estados" class="w-full text-left px-4 py-2 rounded mb-2 tab-inactive">
+                        📊 Estados
+                    </button>
+                    <button onclick="changeTab('rutas')" id="tab-rutas" class="w-full text-left px-4 py-2 rounded mb-2 tab-inactive">
+                        🗺️ Rutas
+                    </button>
+                    <button onclick="changeTab('ubicaciones')" id="tab-ubicaciones" class="w-full text-left px-4 py-2 rounded mb-2 tab-inactive">
+                        📍 Ubicaciones
+                    </button>
+                    <button onclick="changeTab('contenedores')" id="tab-contenedores" class="w-full text-left px-4 py-2 rounded mb-2 tab-inactive">
+                        📦 Contenedores
+                    </button>
+                    <button onclick="changeTab('solicitudes')" id="tab-solicitudes" class="w-full text-left px-4 py-2 rounded mb-2 tab-inactive">
+                        📋 Solicitudes
+                    </button>
+                    <button onclick="changeTab('tramos')" id="tab-tramos" class="w-full text-left px-4 py-2 rounded mb-2 tab-inactive">
+                        🛣️ Tramos
+                    </button>
+                </nav>
+            </div>
+
+            <!-- Contenido principal -->
+            <div class="lg:col-span-3">
+                <!-- Status panel -->
+                <div id="status-panel" class="bg-white rounded-lg shadow-lg p-6 mb-6 hidden">
+                    <div id="status-content"></div>
+                </div>
+
+                <!-- Paneles de contenido -->
+                <div id="content-area"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const MS_CLIENTES = 'http://localhost:8081';
+        const MS_LOGISTICA = 'http://localhost:8082';
+        let currentTab = 'clientes';
+
+        function changeTab(tab) {
+            document.querySelectorAll('[id^="tab-"]').forEach(btn => {
+                btn.className = 'w-full text-left px-4 py-2 rounded mb-2 tab-inactive';
+            });
+            document.getElementById(`tab-${tab}`).className = 'w-full text-left px-4 py-2 rounded mb-2 tab-active';
+            currentTab = tab;
+            renderContent(tab);
+        }
+
+        function showStatus(type, message, data = null) {
+            const panel = document.getElementById('status-panel');
+            const content = document.getElementById('status-content');
+            panel.classList.remove('hidden');
+
+            if (type === 'loading') {
+                content.innerHTML = `
+                    <div class="flex items-center text-blue-600">
+                        <svg class="animate-spin h-5 w-5 mr-2" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        <span>${message}</span>
+                    </div>
+                `;
+            } else if (type === 'error') {
+                content.innerHTML = `
+                    <div class="flex items-start text-red-600">
+                        <svg class="w-5 h-5 mr-2 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                        </svg>
+                        <div>
+                            <p class="font-semibold">Error</p>
+                            <p class="text-sm">${message}</p>
+                        </div>
+                    </div>
+                `;
+            } else if (type === 'success') {
+                content.innerHTML = `
+                    <div class="flex items-start text-green-600">
+                        <svg class="w-5 h-5 mr-2 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                        </svg>
+                        <div class="flex-1">
+                            <p class="font-semibold">${message}</p>
+                            ${data ? `<pre class="mt-2 bg-gray-50 p-3 rounded text-xs text-gray-700 overflow-auto max-h-96">${JSON.stringify(data, null, 2)}</pre>` : ''}
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        async function makeRequest(method, url, body = null) {
+            showStatus('loading', 'Procesando solicitud...');
+            
+            try {
+                const options = {
+                    method,
+                    headers: { 'Content-Type': 'application/json' }
+                };
+                
+                if (body) options.body = JSON.stringify(body);
+                
+                const res = await fetch(url, options);
+                
+                if (!res.ok) {
+                    const errorText = await res.text();
+                    throw new Error(`HTTP ${res.status}: ${errorText || res.statusText}`);
+                }
+                
+                const data = method === 'DELETE' ? null : await res.json();
+                showStatus('success', `Respuesta exitosa (${res.status})`, data);
+            } catch (err) {
+                showStatus('error', err.message);
+            }
+        }
+
+        function renderContent(tab) {
+            const area = document.getElementById('content-area');
+            
+            if (tab === 'clientes') {
+                area.innerHTML = `
+                    <div class="bg-white rounded-lg shadow-lg p-6">
+                        <h2 class="text-2xl font-bold text-gray-800 mb-6">👥 Gestión de Clientes</h2>
+                        
+                        <button onclick="makeRequest('GET', '${MS_CLIENTES}/api/v0.1/clientes')" 
+                                class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 mb-6">
+                            🔄 Listar Todos
+                        </button>
+
+                        <form onsubmit="event.preventDefault(); crearCliente()" class="space-y-4 mb-6">
+                            <h3 class="font-semibold text-lg">Crear Cliente</h3>
+                            <div class="grid grid-cols-2 gap-4">
+                                <input type="text" id="nombre" placeholder="Nombre *" required class="border rounded px-3 py-2">
+                                <input type="text" id="apellido" placeholder="Apellido *" required class="border rounded px-3 py-2">
+                                <input type="number" id="dni" placeholder="DNI (7-10 dígitos) *" min="1000000" max="9999999999" required class="border rounded px-3 py-2">
+                                <input type="tel" id="telefono" placeholder="Teléfono" class="border rounded px-3 py-2">
+                                <input type="email" id="email" placeholder="Email" class="border rounded px-3 py-2 col-span-2">
+                            </div>
+                            <button type="submit" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">
+                                ➕ Crear Cliente
+                            </button>
+                        </form>
+
+                        <div class="border-t pt-4">
+                            <h3 class="font-semibold mb-2">Buscar/Eliminar por ID</h3>
+                            <div class="flex gap-2">
+                                <input type="number" id="clienteId" placeholder="ID del cliente" class="border rounded px-3 py-2 flex-1">
+                                <button onclick="buscarCliente()" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+                                    🔍 Buscar
+                                </button>
+                                <button onclick="eliminarCliente()" class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">
+                                    🗑️ Eliminar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            } else if (tab === 'camiones') {
+                area.innerHTML = `
+                    <div class="bg-white rounded-lg shadow-lg p-6">
+                        <h2 class="text-2xl font-bold text-gray-800 mb-6">🚛 Gestión de Camiones</h2>
+                        
+                        <button onclick="makeRequest('GET', '${MS_LOGISTICA}/api/v0.1/camiones')" 
+                                class="bg-indigo-500 text-white px-4 py-2 rounded hover:bg-indigo-600 mb-6">
+                            🔄 Listar Todos
+                        </button>
+
+                        <form onsubmit="event.preventDefault(); crearCamion()" class="space-y-4 mb-6">
+                            <h3 class="font-semibold text-lg">Crear Camión</h3>
+                            <div class="grid grid-cols-2 gap-4">
+                                <input type="text" id="patente" placeholder="Patente *" required class="border rounded px-3 py-2">
+                                <input type="text" id="nombreTransportista" placeholder="Transportista *" required class="border rounded px-3 py-2">
+                                <input type="tel" id="telefono" placeholder="Teléfono" class="border rounded px-3 py-2">
+                                <input type="number" id="capacidadPeso" placeholder="Cap. Peso (kg) *" step="0.01" required class="border rounded px-3 py-2">
+                                <input type="number" id="capacidadVolumen" placeholder="Cap. Volumen (m³) *" step="0.01" required class="border rounded px-3 py-2">
+                                <input type="number" id="costoBaseKm" placeholder="Costo/Km *" step="0.01" required class="border rounded px-3 py-2">
+                                <input type="number" id="consumoCombustible" placeholder="Consumo (L/100km) *" step="0.01" required class="border rounded px-3 py-2">
+                                <label class="flex items-center gap-2">
+                                    <input type="checkbox" id="disponible" checked class="w-4 h-4">
+                                    <span>Disponible</span>
+                                </label>
+                            </div>
+                            <button type="submit" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">
+                                ➕ Crear Camión
+                            </button>
+                        </form>
+
+                        <div class="border-t pt-4">
+                            <h3 class="font-semibold mb-2">Buscar/Eliminar por Patente</h3>
+                            <div class="flex gap-2">
+                                <input type="text" id="camionPatente" placeholder="Patente" class="border rounded px-3 py-2 flex-1">
+                                <button onclick="buscarCamion()" class="bg-indigo-500 text-white px-4 py-2 rounded hover:bg-indigo-600">
+                                    🔍 Buscar
+                                </button>
+                                <button onclick="eliminarCamion()" class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">
+                                    🗑️ Eliminar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            } else if (tab === 'depositos') {
+                area.innerHTML = `
+                    <div class="bg-white rounded-lg shadow-lg p-6">
+                        <h2 class="text-2xl font-bold text-gray-800 mb-6">🏭 Gestión de Depósitos</h2>
+                        
+                        <button onclick="makeRequest('GET', '${MS_LOGISTICA}/api/v0.1/depositos')" 
+                                class="bg-indigo-500 text-white px-4 py-2 rounded hover:bg-indigo-600 mb-6">
+                            🔄 Listar Todos
+                        </button>
+
+                        <div class="bg-blue-50 border border-blue-200 rounded p-4 mb-4">
+                            <p class="text-sm text-blue-800">💡 <strong>Coordenadas de Alta Gracia:</strong> Latitud: -31.6536, Longitud: -64.4289</p>
+                        </div>
+                        <div class="bg-blue-50 border border-blue-200 rounded p-4 mb-4">
+                            <p class="text-sm text-blue-800">💡 <strong>Coordenadas del centro de Córdoba:</strong> Latitud: -31.4201, Longitud: -64.1888</p>
+                        </div>
+
+                        <form onsubmit="event.preventDefault(); crearDeposito()" class="space-y-4 mb-6">
+                            <h3 class="font-semibold text-lg">Crear Depósito</h3>
+                            <div class="grid grid-cols-2 gap-4">
+                                <input type="text" id="nombre" placeholder="Nombre *" required class="border rounded px-3 py-2">
+                                <input type="text" id="direccion" placeholder="Dirección *" required class="border rounded px-3 py-2">
+                                <input type="number" id="latitud" placeholder="Latitud *" step="any" required class="border rounded px-3 py-2">
+                                <input type="number" id="longitud" placeholder="Longitud *" step="any" required class="border rounded px-3 py-2">
+                            </div>
+                            <button type="submit" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">
+                                ➕ Crear Depósito
+                            </button>
+                        </form>
+
+                        <div class="border-t pt-4">
+                            <h3 class="font-semibold mb-2">Buscar/Eliminar por ID</h3>
+                            <div class="flex gap-2">
+                                <input type="number" id="depositoId" placeholder="ID" class="border rounded px-3 py-2 flex-1">
+                                <button onclick="buscarEntidad('depositos', 'depositoId')" class="bg-indigo-500 text-white px-4 py-2 rounded hover:bg-indigo-600">
+                                    🔍 Buscar
+                                </button>
+                                <button onclick="eliminarEntidad('depositos', 'depositoId')" class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">
+                                    🗑️ Eliminar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            } else if (tab === 'estados') {
+                area.innerHTML = createSimplePanel('Estados', '📊', 'estados', [
+                    {id: 'nombre', label: 'Nombre *', type: 'text', required: true},
+                    {id: 'descripcion', label: 'Descripción', type: 'text'}
+                ]);
+            } else if (tab === 'rutas') {
+                area.innerHTML = createSimplePanel('Rutas', '🗺️', 'rutas', [
+                    {id: 'origen', label: 'Origen *', type: 'text', required: true},
+                    {id: 'destino', label: 'Destino *', type: 'text', required: true},
+                    {id: 'distanciaKm', label: 'Distancia (km) *', type: 'number', step: '0.01', required: true},
+                    {id: 'costoBase', label: 'Costo Base *', type: 'number', step: '0.01', required: true}
+                ]);
+            } else if (tab === 'ubicaciones') {
+                area.innerHTML = createSimplePanel('Ubicaciones', '📍', 'ubicaciones', [
+                    {id: 'nombre', label: 'Nombre *', type: 'text', required: true},
+                    {id: 'direccion', label: 'Dirección *', type: 'text', required: true},
+                    {id: 'latitud', label: 'Latitud *', type: 'number', step: 'any', required: true},
+                    {id: 'longitud', label: 'Longitud *', type: 'number', step: 'any', required: true}
+                ]);
+            } else if (tab === 'contenedores') {
+                area.innerHTML = createSimplePanel('Contenedores', '📦', 'contenedores', [
+                    {id: 'idSolicitud', label: 'ID Solicitud *', type: 'number', required: true},
+                    {id: 'tipo', label: 'Tipo *', type: 'text', required: true},
+                    {id: 'volumen', label: 'Volumen *', type: 'text', required: true},
+                    {id: 'peso', label: 'Peso (kg)', type: 'number', step: '0.01'}
+                ]);
+            } else if (tab === 'solicitudes') {
+                area.innerHTML = `
+                    <div class="bg-white rounded-lg shadow-lg p-6">
+                        <h2 class="text-2xl font-bold text-gray-800 mb-6">📋 Gestión de Solicitudes</h2>
+                        
+                        <button onclick="makeRequest('GET', '${MS_LOGISTICA}/api/v0.1/solicitudes')" 
+                                class="bg-indigo-500 text-white px-4 py-2 rounded hover:bg-indigo-600 mb-6">
+                            🔄 Listar Todas
+                        </button>
+
+                        <div class="bg-blue-50 border border-blue-200 rounded p-4 mb-4">
+                            <p class="text-sm text-blue-800">💡 La solicitud debe referenciar un <strong>cliente existente</strong> en ms-clientes</p>
+                        </div>
+
+                        <form onsubmit="event.preventDefault(); crearSolicitud()" class="space-y-4 mb-6">
+                            <h3 class="font-semibold text-lg">Crear Solicitud</h3>
+                            <div class="grid grid-cols-2 gap-4">
+                                <input type="number" id="idCliente" placeholder="ID Cliente *" required class="border rounded px-3 py-2">
+                                <input type="number" id="idEstado" placeholder="ID Estado *" required class="border rounded px-3 py-2">
+                                <input type="number" id="idRuta" placeholder="ID Ruta" class="border rounded px-3 py-2">
+                                <input type="text" id="descripcion" placeholder="Descripción" class="border rounded px-3 py-2 col-span-2">
+                            </div>
+                            <button type="submit" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">
+                                ➕ Crear Solicitud
+                            </button>
+                        </form>
+
+                        <div class="border-t pt-4">
+                            <h3 class="font-semibold mb-2">Buscar/Eliminar por ID</h3>
+                            <div class="flex gap-2">
+                                <input type="number" id="solicitudId" placeholder="ID" class="border rounded px-3 py-2 flex-1">
+                                <button onclick="makeRequest('GET', '${MS_LOGISTICA}/api/v0.1/solicitudes/' + document.getElementById('solicitudId').value)" 
+                                        class="bg-indigo-500 text-white px-4 py-2 rounded hover:bg-indigo-600">
+                                    🔍 Buscar
+                                </button>
+                                <button onclick="if(confirm('¿Eliminar?')) makeRequest('DELETE', '${MS_LOGISTICA}/api/v0.1/solicitudes/' + document.getElementById('solicitudId').value)" 
+                                        class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">
+                                    🗑️ Eliminar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            } else if (tab === 'tramos') {
+                area.innerHTML = `
+                    <div class="bg-white rounded-lg shadow-lg p-6">
+                        <h2 class="text-2xl font-bold text-gray-800 mb-6">🛣️ Gestión de Tramos (con OSRM)</h2>
+                        
+                        <button onclick="makeRequest('GET', '${MS_LOGISTICA}/api/v0.1/tramos')" 
+                                class="bg-indigo-500 text-white px-4 py-2 rounded hover:bg-indigo-600 mb-6">
+                            🔄 Listar Todos
+                        </button>
+
+                        <div class="bg-yellow-50 border border-yellow-200 rounded p-4 mb-4">
+                            <p class="text-sm text-yellow-800">🚀 <strong>OSRM calculará automáticamente</strong> la distancia y tiempo al crear el tramo</p>
+                        </div>
+
+                        <form onsubmit="event.preventDefault(); crearTramo()" class="space-y-4 mb-6">
+                            <h3 class="font-semibold text-lg">Crear Tramo</h3>
+                            <div class="grid grid-cols-2 gap-4">
+                                <input type="number" id="idRuta" placeholder="ID Ruta *" required class="border rounded px-3 py-2">
+                                <select id="tipoTramo" required class="border rounded px-3 py-2">
+                                    <option value="">Tipo Tramo *</option>
+                                    <option value="ORIGEN_DEPOSITO">ORIGEN_DEPOSITO</option>
+                                    <option value="DEPOSITO_DEPOSITO">DEPOSITO_DEPOSITO</option>
+                                    <option value="DEPOSITO_DESTINO">DEPOSITO_DESTINO</option>
+                                    <option value="ORIGEN_DESTINO">ORIGEN_DESTINO</option>
+                                </select>
+                                <input type="number" id="idOrigen" placeholder="ID Origen *" required class="border rounded px-3 py-2">
+                                <input type="number" id="idDestino" placeholder="ID Destino *" required class="border rounded px-3 py-2">
+                                <input type="number" id="estadoId" placeholder="ID Estado *" required class="border rounded px-3 py-2">
+                                <input type="text" id="dominioCamion" placeholder="Patente Camión" class="border rounded px-3 py-2">
+                            </div>
+                            <button type="submit" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">
+                                ➕ Crear Tramo
+                            </button>
+                        </form>
+
+                        <div class="border-t pt-4">
+                            <h3 class="font-semibold mb-2">Buscar/Eliminar por ID</h3>
+                            <div class="flex gap-2">
+                                <input type="number" id="tramoId" placeholder="ID" class="border rounded px-3 py-2 flex-1">
+                                <button onclick="buscarEntidad('tramos', 'tramoId')" class="bg-indigo-500 text-white px-4 py-2 rounded hover:bg-indigo-600">
+                                    🔍 Buscar
+                                </button>
+                                <button onclick="eliminarEntidad('tramos', 'tramoId')" class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">
+                                    🗑️ Eliminar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        function createSimplePanel(title, icon, endpoint, fields) {
+            const fieldsHTML = fields.map(f => {
+                const attrs = `type="${f.type}" id="${f.id}" placeholder="${f.label}" ${f.required ? 'required' : ''} ${f.step ? `step="${f.step}"` : ''} class="border rounded px-3 py-2"`;
+                return `<input ${attrs}>`;
+            }).join('');
+
+            return `
+                <div class="bg-white rounded-lg shadow-lg p-6">
+                    <h2 class="text-2xl font-bold text-gray-800 mb-6">${icon} Gestión de ${title}</h2>
+                    
+                    <button onclick="makeRequest('GET', '${MS_LOGISTICA}/api/v0.1/${endpoint}')" 
+                            class="bg-indigo-500 text-white px-4 py-2 rounded hover:bg-indigo-600 mb-6">
+                        🔄 Listar Todos
+                    </button>
+
+                    <form onsubmit="event.preventDefault(); crearGenerico('${endpoint}')" class="space-y-4 mb-6">
+                        <h3 class="font-semibold text-lg">Crear ${title}</h3>
+                        <div class="grid grid-cols-2 gap-4">
+                            ${fieldsHTML}
+                        </div>
+                        <button type="submit" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">
+                            ➕ Crear
+                        </button>
+                    </form>
+
+                    <div class="border-t pt-4">
+                        <h3 class="font-semibold mb-2">Buscar/Eliminar por ID</h3>
+                        <div class="flex gap-2">
+                            <input type="number" id="${endpoint}Id" placeholder="ID" class="border rounded px-3 py-2 flex-1">
+                            <button onclick="buscarEntidad('${endpoint}', '${endpoint}Id')" class="bg-indigo-500 text-white px-4 py-2 rounded hover:bg-indigo-600">
+                                🔍 Buscar
+                            </button>
+                            <button onclick="eliminarEntidad('${endpoint}', '${endpoint}Id')" class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">
+                                🗑️ Eliminar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Funciones de creación específicas
+        function crearCliente() {
+            const data = {
+                nombre: document.getElementById('nombre').value,
+                apellido: document.getElementById('apellido').value,
+                dni: parseInt(document.getElementById('dni').value),
+                telefono: document.getElementById('telefono').value || null,
+                email: document.getElementById('email').value || null
+            };
+            makeRequest('POST', `${MS_CLIENTES}/api/v0.1/clientes`, data);
+        }
+
+        function buscarCliente() {
+            const id = document.getElementById('clienteId').value;
+            if (id) makeRequest('GET', `${MS_CLIENTES}/api/v0.1/clientes/${id}`);
+        }
+
+        function eliminarCliente() {
+            const id = document.getElementById('clienteId').value;
+            if (id && confirm('¿Eliminar este cliente?')) {
+                makeRequest('DELETE', `${MS_CLIENTES}/api/v0.1/clientes/${id}`);
+            }
+        }
+
+        function crearCamion() {
+            const data = {
+                patente: document.getElementById('patente').value,
+                nombreTransportista: document.getElementById('nombreTransportista').value,
+                telefono: document.getElementById('telefono').value || null,
+                capacidadPeso: parseFloat(document.getElementById('capacidadPeso').value),
+                capacidadVolumen: parseFloat(document.getElementById('capacidadVolumen').value),
+                disponible: document.getElementById('disponible').checked,
+                costoBaseKm: parseFloat(document.getElementById('costoBaseKm').value),
+                consumoCombustible: parseFloat(document.getElementById('consumoCombustible').value)
+            };
+            makeRequest('POST', `${MS_LOGISTICA}/api/v0.1/camiones`, data);
+        }
+
+        function buscarCamion() {
+            const patente = document.getElementById('camionPatente').value;
+            if (patente) makeRequest('GET', `${MS_LOGISTICA}/api/v0.1/camiones/${patente}`);
+        }
+
+        function eliminarCamion() {
+            const patente = document.getElementById('camionPatente').value;
+            if (patente && confirm('¿Eliminar este camión?')) {
+                makeRequest('DELETE', `${MS_LOGISTICA}/api/v0.1/camiones/${patente}`);
+            }
+        }
+
+        function crearDeposito() {
+            const data = {
+                nombre: document.getElementById('nombre').value,
+                direccion: document.getElementById('direccion').value,
+                latitud: parseFloat(document.getElementById('latitud').value),
+                longitud: parseFloat(document.getElementById('longitud').value)
+            };
+            makeRequest('POST', `${MS_LOGISTICA}/api/v0.1/depositos`, data);
+        }
+
+        function crearSolicitud() {
+            const data = {
+                idCliente: parseInt(document.getElementById('idCliente').value),
+                idEstado: parseInt(document.getElementById('idEstado').value)
+            };
+            
+            const idRuta = document.getElementById('idRuta').value;
+            if (idRuta) data.idRuta = parseInt(idRuta);
+            
+            const descripcion = document.getElementById('descripcion').value;
+            if (descripcion) data.descripcion = descripcion;
+            
+            makeRequest('POST', `${MS_LOGISTICA}/api/v0.1/solicitudes`, data);
+        }
+
+        function crearTramo() {
+            const data = {
+                idRuta: parseInt(document.getElementById('idRuta').value),
+                tipoTramo: document.getElementById('tipoTramo').value,
+                idOrigen: parseInt(document.getElementById('idOrigen').value),
+                idDestino: parseInt(document.getElementById('idDestino').value),
+                estadoId: parseInt(document.getElementById('estadoId').value)
+            };
+            
+            const dominio = document.getElementById('dominioCamion').value;
+            if (dominio) data.dominioCamion = dominio;
+            
+            makeRequest('POST', `${MS_LOGISTICA}/api/v0.1/tramos`, data);
+        }
+
+        function crearGenerico(endpoint) {
+            const form = event.target;
+            const data = {};
+            const inputs = form.querySelectorAll('input, select');
+            
+            inputs.forEach(input => {
+                if (input.id && input.value) {
+                    if (input.type === 'number') {
+                        data[input.id] = parseFloat(input.value);
+                    } else {
+                        data[input.id] = input.value;
+                    }
+                }
+            });
+            
+            makeRequest('POST', `${MS_LOGISTICA}/api/v0.1/${endpoint}`, data);
+        }
+
+        function buscarEntidad(endpoint, inputId) {
+            const id = document.getElementById(inputId).value;
+            if (id) makeRequest('GET', `${MS_LOGISTICA}/api/v0.1/${endpoint}/${id}`);
+        }
+
+        function eliminarEntidad(endpoint, inputId) {
+            const id = document.getElementById(inputId).value;
+            if (id && confirm('¿Eliminar este registro?')) {
+                makeRequest('DELETE', `${MS_LOGISTICA}/api/v0.1/${endpoint}/${id}`);
+            }
+        }
+
+        // Renderizar contenido inicial
+        renderContent('clientes');
+    </script>
+</body>
+</html>

@@ -1,0 +1,54 @@
+services:
+  # ============================
+  # MySQL - MS CLIENTES
+  # ============================
+  mysql-clientes:
+    image: mysql:8.0
+    container_name: mysql-clientes
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: bd_clientes
+      MYSQL_USER: user
+      MYSQL_PASSWORD: userpass
+    ports:
+      - "3306:3306"
+    volumes:
+      - clientes_data:/var/lib/mysql
+      - ./ms-clientes/src/main/resources/bd-clientes.sql:/docker-entrypoint-initdb.d/bd-clientes.sql
+
+  # ============================
+  # MySQL - MS LOGISTICA
+  # ============================
+  mysql-logistica:
+    image: mysql:8.0
+    container_name: mysql-logistica
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: bd_logistica
+      MYSQL_USER: user
+      MYSQL_PASSWORD: userpass
+    ports:
+      - "3307:3306"
+    volumes:
+      - logisticas_data:/var/lib/mysql
+      - ./ms-logistica/src/main/resources/bd-logistica.sql:/docker-entrypoint-initdb.d/bd-logistica.sql
+
+  # ============================
+  # OSRM
+  # ============================
+  osrm:
+    image: osrm/osrm-backend:latest
+    platform: linux/amd64
+    container_name: osrm
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./osrm-data:/data
+    command: >
+      osrm-routed /data/argentina-251112.osrm
+
+volumes:
+  clientes_data:
+  logisticas_data:

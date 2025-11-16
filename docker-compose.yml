@@ -1,0 +1,90 @@
+services:
+  # MySQL para ms-clientes
+  mysql-clientes:
+    image: mysql:8.0
+    container_name: mysql-clientes
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: bd_clientes
+      MYSQL_USER: user
+      MYSQL_PASSWORD: userpass
+    ports:
+      - "3306:3306"
+    volumes:
+      - clientes_data:/var/lib/mysql
+      - ./ms-clientes/src/main/resources/bd-clientes.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 5s
+      retries: 10
+
+  # MySQL para ms-logistica
+  mysql-logistica:
+    image: mysql:8.0
+    container_name: mysql-logistica
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: bd_logistica
+      MYSQL_USER: user
+      MYSQL_PASSWORD: userpass
+    ports:
+      - "3307:3306"
+    volumes:
+      - logisticas_data:/var/lib/mysql
+      - ./ms-logistica/src/main/resources/bd-logistica.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 5s
+      retries: 10
+
+  # OSRM para cálculo de rutas
+  osrm:
+    image: osrm/osrm-backend:latest
+    platform: linux/amd64
+    container_name: osrm
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./osrm-data:/data
+    command: >
+      osrm-routed /data/argentina-251112.osrm
+
+  # Microservicio clientes
+  ms-clientes:
+    build:
+      context: ./ms-clientes
+      dockerfile: Dockerfile
+    container_name: ms-clientes
+    depends_on:
+      mysql-clientes:
+        condition: service_healthy
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql-clientes:3306/bd_clientes
+      SPRING_DATASOURCE_USERNAME: user
+      SPRING_DATASOURCE_PASSWORD: userpass
+    ports:
+      - "8081:8081"
+
+  # Microservicio logística
+  ms-logistica:
+    build:
+      context: ./ms-logistica
+      dockerfile: Dockerfile
+    container_name: ms-logistica
+    depends_on:
+      mysql-logistica:
+        condition: service_healthy
+      osrm:
+        condition: service_started
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql-logistica:3306/bd_logistica
+      SPRING_DATASOURCE_USERNAME: user
+      SPRING_DATASOURCE_PASSWORD: userpass
+    ports:
+      - "8082:8082"
+
+volumes:
+  clientes_data:
+  logisticas_data:
