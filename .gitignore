@@ -2,6 +2,7 @@
 # 1. IGNORAR DIRECTORIOS DE COMPILACIÓN EN CUALQUIER LUGAR (Maven/Gradle)
 # ==========================================================
 
+osrm-data/
 
 # Ignora la carpeta 'target' de Maven/Spring Boot en cualquier MS
 **/target/
