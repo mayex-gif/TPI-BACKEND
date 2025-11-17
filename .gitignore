@@ -2,9 +2,6 @@
 # 1. IGNORAR DIRECTORIOS DE COMPILACIÓN EN CUALQUIER LUGAR (Maven/Gradle)
 # ==========================================================
 
-osrm-data
-ms-tarifas/
-apigateway/
 
 # Ignora la carpeta 'target' de Maven/Spring Boot en cualquier MS
 **/target/
@@ -45,7 +42,6 @@ temp/
 # 3. IGNORAR VOLÚMENES Y DATOS DE DOCKER/MYSQL
 # ==========================================================
 # Archivos de volúmenes locales usados por Docker Compose
-osrm-data/
 volumes/
 clientes_data/ # Si definiste volúmenes nombrados fuera del compose (menos común)
 logistica_data/ # Si definiste volúmenes nombrados fuera del compose (menos común)

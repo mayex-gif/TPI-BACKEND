@@ -1,5 +1,6 @@
 package com.backend.ms_logistica.model;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
@@ -14,6 +15,7 @@ public class Tramo {
 
     @ManyToOne
     @JoinColumn(name = "id_ruta", nullable = false)
+    @JsonBackReference
     private Ruta ruta;
 
     @Enumerated(EnumType.STRING)

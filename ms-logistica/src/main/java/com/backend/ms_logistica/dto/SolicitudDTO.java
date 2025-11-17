@@ -1,14 +1,16 @@
 package com.backend.ms_logistica.dto;
 
+import com.backend.ms_logistica.remoto.ClienteDTO;
 import jakarta.validation.constraints.NotNull;
 
 import java.util.List;
 
 public class SolicitudDTO {
 
+    private ClienteDTO cliente;
+
     private Integer idSolicitud;
 
-    @NotNull(message = "El cliente es obligatorio")
     private Integer idCliente;
 
     private Integer idRuta;
@@ -25,6 +27,16 @@ public class SolicitudDTO {
     private List<Integer> contenedoresIds;
 
     // Getters y setters
+
+
+    public ClienteDTO getCliente() {
+        return cliente;
+    }
+
+    public void setCliente(ClienteDTO cliente) {
+        this.cliente = cliente;
+    }
+
     public Integer getIdSolicitud() { return idSolicitud; }
     public void setIdSolicitud(Integer idSolicitud) { this.idSolicitud = idSolicitud; }
 

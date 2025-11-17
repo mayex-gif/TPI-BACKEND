@@ -1,5 +1,6 @@
 package com.backend.ms_logistica.model;
 
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -28,6 +29,7 @@ public class Ruta {
     private Double costoBase;
 
     @OneToMany(mappedBy = "ruta")
+    @JsonManagedReference
     private List<Tramo> tramos = new ArrayList<>();
 
     public Ruta() {}

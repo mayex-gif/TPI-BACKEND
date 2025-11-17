@@ -61,7 +61,7 @@ CREATE TABLE RUTA (
 -- ============================================================
 CREATE TABLE SOLICITUD (
                            id_solicitud INT PRIMARY KEY AUTO_INCREMENT,
-                           id_cliente INT NOT NULL,
+                           id_cliente INT,
                            id_ruta INT,
                            id_estado INT NOT NULL,
                            fecha_solicitud DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,

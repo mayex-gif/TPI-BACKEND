@@ -14,7 +14,7 @@ public class Solicitud {
     @Column(name = "id_solicitud")
     private Integer idSolicitud;
 
-    @Column(name = "id_cliente", nullable = false)
+    @Column(name = "id_cliente")
     private Integer idCliente; // referencia al cliente del ms-clientes
 
     @ManyToOne
@@ -25,7 +25,9 @@ public class Solicitud {
     @JoinColumn(name = "id_estado", nullable = false)
     private Estado estado;
 
-    @Column(name = "fecha_solicitud", nullable = false)
+    @Column(name = "fecha_solicitud", nullable = false,
+            columnDefinition = "DATETIME DEFAULT CURRENT_TIMESTAMP",
+            insertable = false, updatable = false)
     private LocalDateTime fechaSolicitud;
 
     @Column(name = "descripcion")
@@ -37,7 +39,7 @@ public class Solicitud {
     @Column(name = "tiempo_estimado")
     private Double tiempoEstimado; // en horas, por ejemplo
 
-    @OneToMany(mappedBy = "solicitud", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "solicitud")
     private List<Contenedor> contenedores = new ArrayList<>();
 
     public Solicitud() {}
