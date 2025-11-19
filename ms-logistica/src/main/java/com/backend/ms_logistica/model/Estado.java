@@ -11,26 +11,54 @@ public class Estado {
     @Column(name = "id_estado")
     private Integer idEstado;
 
-    @Column(nullable = false, name = "nombre")
+    @Enumerated(EnumType.STRING)
+    @Column(name = "ambito", nullable = false)
+    private AmbitoEstado ambito;
+
+    @Column(name = "nombre", nullable = false, length = 50)
     private String nombre;
 
-    @Column(name = "descripcion")
+    @Column(name = "descripcion", length = 255)
     private String descripcion;
 
     public Estado() {}
 
-    public Estado(String nombre, String descripcion) {
+    public Estado(AmbitoEstado ambito, String nombre, String descripcion) {
+        this.ambito = ambito;
         this.nombre = nombre;
         this.descripcion = descripcion;
     }
 
-    // Getters y setters
-    public Integer getIdEstado() { return idEstado; }
-    public void setIdEstado(Integer idEstado) { this.idEstado = idEstado; }
+    // Getters y Setters
+    public Integer getIdEstado() {
+        return idEstado;
+    }
 
-    public String getNombre() { return nombre; }
-    public void setNombre(String nombre) { this.nombre = nombre; }
+    public void setIdEstado(Integer idEstado) {
+        this.idEstado = idEstado;
+    }
 
-    public String getDescripcion() { return descripcion; }
-    public void setDescripcion(String descripcion) { this.descripcion = descripcion; }
+    public AmbitoEstado getAmbito() {
+        return ambito;
+    }
+
+    public void setAmbito(AmbitoEstado ambito) {
+        this.ambito = ambito;
+    }
+
+    public String getNombre() {
+        return nombre;
+    }
+
+    public void setNombre(String nombre) {
+        this.nombre = nombre;
+    }
+
+    public String getDescripcion() {
+        return descripcion;
+    }
+
+    public void setDescripcion(String descripcion) {
+        this.descripcion = descripcion;
+    }
 }

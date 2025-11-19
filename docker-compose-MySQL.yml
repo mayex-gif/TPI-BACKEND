@@ -36,6 +36,24 @@ services:
       - ./ms-logistica/src/main/resources/bd-logistica.sql:/docker-entrypoint-initdb.d/bd-logistica.sql
 
   # ============================
+  # MySQL - MS TARIFAS
+  # ============================
+  mysql-tarifas:
+    image: mysql:8.0
+    container_name: mysql-tarifas
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: bd_tarifas
+      MYSQL_USER: user
+      MYSQL_PASSWORD: userpass
+    ports:
+      - "3308:3306"
+    volumes:
+      - tarifas_data:/var/lib/mysql
+      - ./ms-tarifas/src/main/resources/bd-tarifas.sql:/docker-entrypoint-initdb.d/bd-tarifas.sql
+
+  # ============================
   # OSRM
   # ============================
   osrm:
@@ -52,3 +70,4 @@ services:
 volumes:
   clientes_data:
   logisticas_data:
+  tarifas_data:

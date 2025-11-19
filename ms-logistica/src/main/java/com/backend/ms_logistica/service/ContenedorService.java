@@ -1,83 +1,138 @@
 package com.backend.ms_logistica.service;
 
 import com.backend.ms_logistica.dto.ContenedorDTO;
+import com.backend.ms_logistica.dto.EstadoDTO;
+import com.backend.ms_logistica.model.AmbitoEstado;
 import com.backend.ms_logistica.model.Contenedor;
+import com.backend.ms_logistica.model.Estado;
 import com.backend.ms_logistica.model.Solicitud;
 import com.backend.ms_logistica.repository.ContenedorRepository;
-import com.backend.ms_logistica.repository.SolicitudRepository;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
+@Transactional
 public class ContenedorService {
 
-    @Autowired
-    private ContenedorRepository repo;
+    private final ContenedorRepository contenedorRepository;
+    private final EstadoService estadoService;
 
-    @Autowired
-    private SolicitudRepository solicitudRepo;
-
-    // Crear
-    public Contenedor crear(Contenedor c) {
-        return repo.save(c);
+    public ContenedorService(ContenedorRepository contenedorRepository,
+                             EstadoService estadoService) {
+        this.contenedorRepository = contenedorRepository;
+        this.estadoService = estadoService;
     }
 
-    // Listar
-    public List<Contenedor> listar() {
-        return repo.findAll();
-    }
+    // ======== OPERACIONES CRUD ========
 
-    // Buscar
-    public Contenedor buscar(Integer id) {
-        return repo.findById(id)
-                .orElseThrow(() -> new RuntimeException("Contenedor no encontrado: " + id));
-    }
-
-    // Actualizar
-    public Contenedor actualizar(Integer id, Contenedor nuevo) {
-        Contenedor c = buscar(id);
-        c.setTipo(nuevo.getTipo());
-        c.setVolumen(nuevo.getVolumen());
-        c.setPeso(nuevo.getPeso());
-        c.setSolicitud(nuevo.getSolicitud());
-        return repo.save(c);
-    }
-
-    // Eliminar
-    public void eliminar(Integer id) {
-        repo.deleteById(id);
-    }
-
-    // Mapper: Entity -> DTO
-    public ContenedorDTO toDTO(Contenedor c) {
-        return new ContenedorDTO(
-                c.getIdContenedor(),
-                c.getSolicitud().getIdSolicitud(),
-                c.getTipo(),
-                c.getVolumen(),
-                c.getPeso()
-        );
-    }
-
-    // Mapper: DTO -> Entity
-    public Contenedor toEntity(ContenedorDTO dto) {
-        Solicitud solicitud = solicitudRepo.findById(dto.getIdSolicitud())
-                .orElseThrow(() -> new RuntimeException("Solicitud no encontrada: " + dto.getIdSolicitud()));
-        Contenedor c = new Contenedor();
-        c.setSolicitud(solicitud);
-        c.setTipo(dto.getTipo());
-        c.setVolumen(dto.getVolumen());
-        c.setPeso(dto.getPeso());
-        return c;
-    }
-
-    // List DTO
-    public List<ContenedorDTO> listarDTO() {
-        return listar().stream()
+    public List<ContenedorDTO> obtenerTodos() {
+        return contenedorRepository.findAll().stream()
                 .map(this::toDTO)
                 .collect(Collectors.toList());
+    }
+
+    public ContenedorDTO obtenerPorId(Integer id) {
+        Contenedor contenedor = contenedorRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Contenedor no encontrado con ID: " + id));
+        return toDTO(contenedor);
+    }
+
+    public ContenedorDTO obtenerPorSolicitud(Integer idSolicitud) {
+        Contenedor contenedor = contenedorRepository.findBySolicitudIdSolicitud(idSolicitud)
+                .orElseThrow(() -> new RuntimeException(
+                        "No se encontró contenedor para la solicitud: " + idSolicitud));
+        return toDTO(contenedor);
+    }
+
+    public ContenedorDTO actualizar(Integer id, ContenedorDTO dto) {
+        Contenedor contenedor = contenedorRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Contenedor no encontrado con ID: " + id));
+
+        contenedor.setPeso(dto.getPeso());
+        contenedor.setUnidadPeso(dto.getUnidadPeso());
+        contenedor.setVolumen(dto.getVolumen());
+
+        if (dto.getEstado() != null && dto.getEstado().getIdEstado() != null) {
+            Estado estado = estadoService.obtenerEstadoEntity(dto.getEstado().getIdEstado());
+            contenedor.setEstado(estado);
+        }
+
+        Contenedor actualizado = contenedorRepository.save(contenedor);
+        return toDTO(actualizado);
+    }
+
+    // ======== OPERACIONES DE NEGOCIO ========
+
+    public ContenedorDTO cambiarEstado(Integer id, String nombreEstado) {
+        Contenedor contenedor = contenedorRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Contenedor no encontrado con ID: " + id));
+
+        Estado nuevoEstado = estadoService.obtenerEstadoPorNombreYAmbito(
+                nombreEstado, AmbitoEstado.CONTENEDOR);
+
+        contenedor.setEstado(nuevoEstado);
+        Contenedor actualizado = contenedorRepository.save(contenedor);
+
+        return toDTO(actualizado);
+    }
+
+    public List<ContenedorDTO> obtenerPorEstado(String nombreEstado) {
+        Estado estado = estadoService.obtenerEstadoPorNombreYAmbito(
+                nombreEstado, AmbitoEstado.CONTENEDOR);
+
+        return contenedorRepository.findByEstado(estado).stream()
+                .map(this::toDTO)
+                .collect(Collectors.toList());
+    }
+
+    public Contenedor crearContenedorParaSolicitud(Solicitud solicitud, Double peso,
+                                                   String unidadPeso, Double volumen) {
+        Estado estadoInicial = estadoService.obtenerEstadoPorNombreYAmbito(
+                "EN_ORIGEN", AmbitoEstado.CONTENEDOR);
+
+        Contenedor contenedor = new Contenedor();
+        contenedor.setSolicitud(solicitud);
+        contenedor.setPeso(peso);
+        contenedor.setUnidadPeso(com.backend.ms_logistica.model.UnidadPeso.valueOf(unidadPeso));
+        contenedor.setVolumen(volumen);
+        contenedor.setEstado(estadoInicial);
+
+        return contenedorRepository.save(contenedor);
+    }
+
+    public Contenedor obtenerContenedorEntity(Integer id) {
+        return contenedorRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Contenedor no encontrado con ID: " + id));
+    }
+
+    // ======== MAPPERS ========
+
+    private ContenedorDTO toDTO(Contenedor contenedor) {
+        if (contenedor == null) return null;
+
+        ContenedorDTO dto = new ContenedorDTO();
+        dto.setIdContenedor(contenedor.getIdContenedor());
+        dto.setIdSolicitud(contenedor.getSolicitud() != null ?
+                contenedor.getSolicitud().getIdSolicitud() : null);
+        dto.setPeso(contenedor.getPeso());
+        dto.setUnidadPeso(contenedor.getUnidadPeso());
+        dto.setVolumen(contenedor.getVolumen());
+        dto.setEstado(estadoDTOFromEntity(contenedor.getEstado()));
+
+        return dto;
+    }
+
+    private EstadoDTO estadoDTOFromEntity(Estado estado) {
+        if (estado == null) return null;
+
+        return new EstadoDTO(
+                estado.getIdEstado(),
+                estado.getAmbito(),
+                estado.getNombre(),
+                estado.getDescripcion()
+        );
     }
 }

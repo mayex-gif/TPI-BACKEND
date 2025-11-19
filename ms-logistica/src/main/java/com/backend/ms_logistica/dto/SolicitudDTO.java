@@ -1,63 +1,111 @@
 package com.backend.ms_logistica.dto;
 
-import com.backend.ms_logistica.remoto.ClienteDTO;
 import jakarta.validation.constraints.NotNull;
-
-import java.util.List;
+import java.time.LocalDateTime;
 
 public class SolicitudDTO {
 
-    private ClienteDTO cliente;
-
     private Integer idSolicitud;
 
+    @NotNull(message = "El ID del cliente es obligatorio")
     private Integer idCliente;
 
-    private Integer idRuta;
+    private EstadoDTO estado;
 
-    @NotNull(message = "El estado es obligatorio")
-    private Integer idEstado;
+    private LocalDateTime fechaSolicitud;
 
     private String descripcion;
 
+    // Origen
+    private String origenDireccion;
+
+    @NotNull(message = "La latitud de origen es obligatoria")
+    private Double origenLat;
+
+    @NotNull(message = "La longitud de origen es obligatoria")
+    private Double origenLon;
+
+    // Destino
+    private String destinoDireccion;
+
+    @NotNull(message = "La latitud de destino es obligatoria")
+    private Double destinoLat;
+
+    @NotNull(message = "La longitud de destino es obligatoria")
+    private Double destinoLon;
+
+    // Costos y tiempos
     private Double costoEstimado;
-
     private Double tiempoEstimado;
+    private Double costoFinal;
+    private Double tiempoReal;
 
-    private List<Integer> contenedoresIds;
+    // Relaciones
+    private ContenedorDTO contenedor;
+    private RutaDTO ruta;
 
-    // Getters y setters
+    // Constructores
+    public SolicitudDTO() {}
 
-
-    public ClienteDTO getCliente() {
-        return cliente;
-    }
-
-    public void setCliente(ClienteDTO cliente) {
-        this.cliente = cliente;
-    }
-
+    // Getters y Setters
     public Integer getIdSolicitud() { return idSolicitud; }
     public void setIdSolicitud(Integer idSolicitud) { this.idSolicitud = idSolicitud; }
 
     public Integer getIdCliente() { return idCliente; }
     public void setIdCliente(Integer idCliente) { this.idCliente = idCliente; }
 
-    public Integer getIdRuta() { return idRuta; }
-    public void setIdRuta(Integer idRuta) { this.idRuta = idRuta; }
+    public EstadoDTO getEstado() { return estado; }
+    public void setEstado(EstadoDTO estado) { this.estado = estado; }
 
-    public Integer getIdEstado() { return idEstado; }
-    public void setIdEstado(Integer idEstado) { this.idEstado = idEstado; }
+    public LocalDateTime getFechaSolicitud() { return fechaSolicitud; }
+    public void setFechaSolicitud(LocalDateTime fechaSolicitud) {
+        this.fechaSolicitud = fechaSolicitud;
+    }
 
     public String getDescripcion() { return descripcion; }
     public void setDescripcion(String descripcion) { this.descripcion = descripcion; }
 
+    public String getOrigenDireccion() { return origenDireccion; }
+    public void setOrigenDireccion(String origenDireccion) {
+        this.origenDireccion = origenDireccion;
+    }
+
+    public Double getOrigenLat() { return origenLat; }
+    public void setOrigenLat(Double origenLat) { this.origenLat = origenLat; }
+
+    public Double getOrigenLon() { return origenLon; }
+    public void setOrigenLon(Double origenLon) { this.origenLon = origenLon; }
+
+    public String getDestinoDireccion() { return destinoDireccion; }
+    public void setDestinoDireccion(String destinoDireccion) {
+        this.destinoDireccion = destinoDireccion;
+    }
+
+    public Double getDestinoLat() { return destinoLat; }
+    public void setDestinoLat(Double destinoLat) { this.destinoLat = destinoLat; }
+
+    public Double getDestinoLon() { return destinoLon; }
+    public void setDestinoLon(Double destinoLon) { this.destinoLon = destinoLon; }
+
     public Double getCostoEstimado() { return costoEstimado; }
-    public void setCostoEstimado(Double costoEstimado) { this.costoEstimado = costoEstimado; }
+    public void setCostoEstimado(Double costoEstimado) {
+        this.costoEstimado = costoEstimado;
+    }
 
     public Double getTiempoEstimado() { return tiempoEstimado; }
-    public void setTiempoEstimado(Double tiempoEstimado) { this.tiempoEstimado = tiempoEstimado; }
+    public void setTiempoEstimado(Double tiempoEstimado) {
+        this.tiempoEstimado = tiempoEstimado;
+    }
 
-    public List<Integer> getContenedoresIds() { return contenedoresIds; }
-    public void setContenedoresIds(List<Integer> contenedoresIds) { this.contenedoresIds = contenedoresIds; }
+    public Double getCostoFinal() { return costoFinal; }
+    public void setCostoFinal(Double costoFinal) { this.costoFinal = costoFinal; }
+
+    public Double getTiempoReal() { return tiempoReal; }
+    public void setTiempoReal(Double tiempoReal) { this.tiempoReal = tiempoReal; }
+
+    public ContenedorDTO getContenedor() { return contenedor; }
+    public void setContenedor(ContenedorDTO contenedor) { this.contenedor = contenedor; }
+
+    public RutaDTO getRuta() { return ruta; }
+    public void setRuta(RutaDTO ruta) { this.ruta = ruta; }
 }

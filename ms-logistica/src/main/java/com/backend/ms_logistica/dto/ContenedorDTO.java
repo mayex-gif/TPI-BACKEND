@@ -1,46 +1,57 @@
 package com.backend.ms_logistica.dto;
 
-import jakarta.validation.constraints.NotBlank;
+import com.backend.ms_logistica.model.UnidadPeso;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
 
 public class ContenedorDTO {
 
     private Integer idContenedor;
 
-    @NotNull(message = "La solicitud es obligatoria")
-    private Integer idSolicitud;  // solo se pasa el ID
+    private Integer idSolicitud;
 
-
-    private String tipo;
-
-
-    private String volumen;
-
+    @NotNull(message = "El peso es obligatorio")
+    @Positive(message = "El peso debe ser positivo")
     private Double peso;
 
+    @NotNull(message = "La unidad de peso es obligatoria")
+    private UnidadPeso unidadPeso;
+
+    @NotNull(message = "El volumen es obligatorio")
+    @Positive(message = "El volumen debe ser positivo")
+    private Double volumen;
+
+    private EstadoDTO estado;
+
+    // Constructores
     public ContenedorDTO() {}
 
-    public ContenedorDTO(Integer idContenedor, Integer idSolicitud, String tipo, String volumen, Double peso) {
+    public ContenedorDTO(Integer idContenedor, Integer idSolicitud, Double peso,
+                         UnidadPeso unidadPeso, Double volumen, EstadoDTO estado) {
         this.idContenedor = idContenedor;
         this.idSolicitud = idSolicitud;
-        this.tipo = tipo;
-        this.volumen = volumen;
         this.peso = peso;
+        this.unidadPeso = unidadPeso;
+        this.volumen = volumen;
+        this.estado = estado;
     }
 
-    // Getters y setters
+    // Getters y Setters
     public Integer getIdContenedor() { return idContenedor; }
     public void setIdContenedor(Integer idContenedor) { this.idContenedor = idContenedor; }
 
     public Integer getIdSolicitud() { return idSolicitud; }
     public void setIdSolicitud(Integer idSolicitud) { this.idSolicitud = idSolicitud; }
 
-    public String getTipo() { return tipo; }
-    public void setTipo(String tipo) { this.tipo = tipo; }
-
-    public String getVolumen() { return volumen; }
-    public void setVolumen(String volumen) { this.volumen = volumen; }
-
     public Double getPeso() { return peso; }
     public void setPeso(Double peso) { this.peso = peso; }
+
+    public UnidadPeso getUnidadPeso() { return unidadPeso; }
+    public void setUnidadPeso(UnidadPeso unidadPeso) { this.unidadPeso = unidadPeso; }
+
+    public Double getVolumen() { return volumen; }
+    public void setVolumen(Double volumen) { this.volumen = volumen; }
+
+    public EstadoDTO getEstado() { return estado; }
+    public void setEstado(EstadoDTO estado) { this.estado = estado; }
 }

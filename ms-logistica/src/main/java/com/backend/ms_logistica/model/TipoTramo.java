@@ -6,4 +6,3 @@ public enum TipoTramo {
     DEPOSITO_DESTINO,
     ORIGEN_DESTINO
 }
-

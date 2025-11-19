@@ -1,187 +1,210 @@
 package com.backend.ms_logistica.service;
 
-import com.backend.ms_logistica.dto.TramoDTO;
-import com.backend.ms_logistica.model.Camion;
-import com.backend.ms_logistica.model.Estado;
-import com.backend.ms_logistica.model.Tramo;
-import com.backend.ms_logistica.model.TipoTramo;
-import com.backend.ms_logistica.repository.CamionRepository;
-import com.backend.ms_logistica.repository.DepositoRepository;
-import com.backend.ms_logistica.repository.EstadoRepository;
-import com.backend.ms_logistica.repository.RutaRepository;
+import com.backend.ms_logistica.dto.*;
+import com.backend.ms_logistica.model.*;
 import com.backend.ms_logistica.repository.TramoRepository;
-import com.backend.ms_logistica.repository.UbicacionRepository;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestTemplate;
-import org.springframework.web.util.UriComponentsBuilder;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
+@Transactional
 public class TramoService {
 
-    @Autowired
-    private TramoRepository tramoRepo;
+    private final TramoRepository tramoRepository;
+    private final EstadoService estadoService;
+    private final DepositoService depositoService;
+    private final CamionService camionService;
 
-    @Autowired
-    private RutaRepository rutaRepo;
-
-    @Autowired
-    private EstadoRepository estadoRepo;
-
-    @Autowired
-    private CamionRepository camionRepo;
-
-    @Autowired
-    private DepositoRepository depositoRepo;
-
-    @Autowired
-    private UbicacionRepository ubicacionRepo;
-
-    private final RestTemplate restTemplate = new RestTemplate();
-
-    // =========================
-    // CRUD
-    // =========================
-    public Tramo crear(Tramo tramo) {
-        Double origenLat = getLatitud(tramo.getIdOrigen(), true, tramo.getTipoTramo());
-        Double origenLng = getLongitud(tramo.getIdOrigen(), true, tramo.getTipoTramo());
-        Double destinoLat = getLatitud(tramo.getIdDestino(), false, tramo.getTipoTramo());
-        Double destinoLng = getLongitud(tramo.getIdDestino(), false, tramo.getTipoTramo());
-
-        calcularDistanciaYTiempo(tramo, origenLat, origenLng, destinoLat, destinoLng);
-
-        return tramoRepo.save(tramo);
+    public TramoService(TramoRepository tramoRepository, EstadoService estadoService,
+                        DepositoService depositoService, CamionService camionService) {
+        this.tramoRepository = tramoRepository;
+        this.estadoService = estadoService;
+        this.depositoService = depositoService;
+        this.camionService = camionService;
     }
 
-    public Tramo buscar(Integer id) {
-        return tramoRepo.findById(id)
-                .orElseThrow(() -> new RuntimeException("Tramo no encontrado: " + id));
+    // ======== OPERACIONES CRUD ========
+
+    public List<TramoDTO> obtenerTodos() {
+        return tramoRepository.findAll().stream()
+                .map(this::toDTO)
+                .collect(Collectors.toList());
     }
 
-    public List<Tramo> listar() {
-        return tramoRepo.findAll();
+    public TramoDTO obtenerPorId(Integer id) {
+        Tramo tramo = tramoRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Tramo no encontrado con ID: " + id));
+        return toDTO(tramo);
     }
 
-    public Tramo actualizar(Integer id, Tramo nuevo) {
-        Tramo t = buscar(id);
-        t.setRuta(nuevo.getRuta());
-        t.setTipoTramo(nuevo.getTipoTramo());
-        t.setIdOrigen(nuevo.getIdOrigen());
-        t.setIdDestino(nuevo.getIdDestino());
-        t.setEstado(nuevo.getEstado());
-        t.setCostoAprox(nuevo.getCostoAprox());
-        t.setCostoReal(nuevo.getCostoReal());
-        t.setTiempoReal(nuevo.getTiempoReal());
-        t.setCamion(nuevo.getCamion());
-        t.setFechaHoraInicio(nuevo.getFechaHoraInicio());
-        t.setFechaHoraFin(nuevo.getFechaHoraFin());
-        return tramoRepo.save(t);
+    public List<TramoDTO> obtenerPorRuta(Integer idRuta) {
+        return tramoRepository.findByRutaIdRuta(idRuta).stream()
+                .map(this::toDTO)
+                .collect(Collectors.toList());
     }
 
-    public void eliminar(Integer id) {
-        tramoRepo.deleteById(id);
-    }
+    // ======== OPERACIONES DE NEGOCIO ========
 
-    // =========================
-    // Mapeo DTO <-> Entity
-    // =========================
-    public Tramo toEntity(TramoDTO dto) {
-        Tramo t = new Tramo();
-        t.setIdTramo(dto.getIdTramo());
-        t.setRuta(rutaRepo.findById(dto.getIdRuta()).orElseThrow());
-        t.setTipoTramo(dto.getTipoTramo());
-        t.setIdOrigen(dto.getIdOrigen());
-        t.setIdDestino(dto.getIdDestino());
-        t.setEstado(estadoRepo.findById(dto.getEstadoId()).orElseThrow());
-        t.setCostoAprox(dto.getCostoAprox());
-        t.setCostoReal(dto.getCostoReal());
-        t.setTiempoEstimado(dto.getTiempoEstimado());
-        t.setTiempoReal(dto.getTiempoReal());
-        t.setDistanciaKm(dto.getDistanciaKm());
-        if (dto.getDominioCamion() != null) {
-            t.setCamion(camionRepo.findById(dto.getDominioCamion()).orElseThrow());
+    public TramoDTO asignarCamion(Integer idTramo, String patenteCamion) {
+        Tramo tramo = tramoRepository.findById(idTramo)
+                .orElseThrow(() -> new RuntimeException("Tramo no encontrado con ID: " + idTramo));
+
+        Camion camion = camionService.obtenerCamionEntity(patenteCamion);
+
+        if (!camion.getDisponible()) {
+            throw new RuntimeException("El camión " + patenteCamion + " no está disponible");
         }
-        return t;
+
+        tramo.setCamion(camion);
+
+        // Cambiar estado del tramo a ASIGNADO
+        Estado estadoAsignado = estadoService.obtenerEstadoPorNombreYAmbito(
+                "ASIGNADO", AmbitoEstado.TRAMO);
+        tramo.setEstado(estadoAsignado);
+
+        Tramo actualizado = tramoRepository.save(tramo);
+        return toDTO(actualizado);
     }
 
-    public TramoDTO toDTO(Tramo t) {
+    public TramoDTO iniciarTramo(Integer idTramo) {
+        Tramo tramo = tramoRepository.findById(idTramo)
+                .orElseThrow(() -> new RuntimeException("Tramo no encontrado con ID: " + idTramo));
+
+        if (tramo.getCamion() == null) {
+            throw new RuntimeException("No se puede iniciar un tramo sin camión asignado");
+        }
+
+        tramo.setFechaHoraInicio(LocalDateTime.now());
+
+        Estado estadoIniciado = estadoService.obtenerEstadoPorNombreYAmbito(
+                "INICIADO", AmbitoEstado.TRAMO);
+        tramo.setEstado(estadoIniciado);
+
+        // Marcar camión como ocupado
+        camionService.marcarComoOcupado(tramo.getCamion().getPatente());
+
+        Tramo actualizado = tramoRepository.save(tramo);
+        return toDTO(actualizado);
+    }
+
+    public TramoDTO finalizarTramo(Integer idTramo) {
+        Tramo tramo = tramoRepository.findById(idTramo)
+                .orElseThrow(() -> new RuntimeException("Tramo no encontrado con ID: " + idTramo));
+
+        if (tramo.getFechaHoraInicio() == null) {
+            throw new RuntimeException("No se puede finalizar un tramo que no fue iniciado");
+        }
+
+        tramo.setFechaHoraFin(LocalDateTime.now());
+
+        // Calcular costo real
+        if (tramo.getCamion() != null && tramo.getDistanciaKm() != null) {
+            Double costoReal = tramo.getCamion().calcularCostoTramo(tramo.getDistanciaKm());
+            tramo.setCostoReal(costoReal);
+        }
+
+        Estado estadoFinalizado = estadoService.obtenerEstadoPorNombreYAmbito(
+                "FINALIZADO", AmbitoEstado.TRAMO);
+        tramo.setEstado(estadoFinalizado);
+
+        // Liberar camión
+        if (tramo.getCamion() != null) {
+            camionService.marcarComoDisponible(tramo.getCamion().getPatente());
+        }
+
+        Tramo actualizado = tramoRepository.save(tramo);
+        return toDTO(actualizado);
+    }
+
+    public List<TramoDTO> obtenerTramosEnProgreso() {
+        Estado estadoIniciado = estadoService.obtenerEstadoPorNombreYAmbito(
+                "INICIADO", AmbitoEstado.TRAMO);
+
+        return tramoRepository.findByEstado(estadoIniciado).stream()
+                .map(this::toDTO)
+                .collect(Collectors.toList());
+    }
+
+    public List<TramoDTO> obtenerTramosPendientesAsignacion() {
+        Estado estadoEstimado = estadoService.obtenerEstadoPorNombreYAmbito(
+                "ESTIMADO", AmbitoEstado.TRAMO);
+
+        return tramoRepository.findByEstado(estadoEstimado).stream()
+                .map(this::toDTO)
+                .collect(Collectors.toList());
+    }
+
+    // ======== MÉTODOS DE UTILIDAD ========
+
+    public Tramo obtenerTramoEntity(Integer id) {
+        return tramoRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Tramo no encontrado con ID: " + id));
+    }
+
+    // ======== MAPPERS ========
+
+    private TramoDTO toDTO(Tramo tramo) {
+        if (tramo == null) return null;
+
         TramoDTO dto = new TramoDTO();
-        dto.setIdTramo(t.getIdTramo());
-        dto.setIdRuta(t.getRuta().getIdRuta());
-        dto.setTipoTramo(t.getTipoTramo());
-        dto.setIdOrigen(t.getIdOrigen());
-        dto.setIdDestino(t.getIdDestino());
-        dto.setEstadoId(t.getEstado().getIdEstado());
-        dto.setCostoAprox(t.getCostoAprox());
-        dto.setCostoReal(t.getCostoReal());
-        dto.setTiempoEstimado(t.getTiempoEstimado());
-        dto.setTiempoReal(t.getTiempoReal());
-        dto.setDistanciaKm(t.getDistanciaKm());
-        dto.setDominioCamion(t.getCamion() != null ? t.getCamion().getPatente() : null);
+        dto.setIdTramo(tramo.getIdTramo());
+        dto.setIdRuta(tramo.getRuta() != null ? tramo.getRuta().getIdRuta() : null);
+        dto.setTipoTramo(tramo.getTipoTramo());
+        dto.setDepositoInicio(depositoDTOFromEntity(tramo.getDepositoInicio()));
+        dto.setDepositoFin(depositoDTOFromEntity(tramo.getDepositoFin()));
+        dto.setInicioLat(tramo.getInicioLat());
+        dto.setInicioLon(tramo.getInicioLon());
+        dto.setFinLat(tramo.getFinLat());
+        dto.setFinLon(tramo.getFinLon());
+        dto.setEstado(estadoDTOFromEntity(tramo.getEstado()));
+        dto.setDistanciaKm(tramo.getDistanciaKm());
+        dto.setTiempoEstimado(tramo.getTiempoEstimado());
+        dto.setCostoEstimado(tramo.getCostoEstimado());
+        dto.setCostoReal(tramo.getCostoReal());
+        dto.setFechaHoraInicio(tramo.getFechaHoraInicio());
+        dto.setFechaHoraFin(tramo.getFechaHoraFin());
+        dto.setCamion(camionDTOFromEntity(tramo.getCamion()));
+
         return dto;
     }
 
-    // =========================
-    // OSRM
-    // =========================
-    public void calcularDistanciaYTiempo(Tramo tramo, Double origenLat, Double origenLng, Double destinoLat, Double destinoLng) {
-        String url = UriComponentsBuilder
-                .fromHttpUrl("http://localhost:5000/route/v1/driving/{origenLng},{origenLat};{destinoLng},{destinoLat}")
-                .queryParam("overview", "false")
-                .queryParam("annotations", "duration,distance")
-                .buildAndExpand(origenLng, origenLat, destinoLng, destinoLat)
-                .toUriString();
-
-        OSRMResponse response = restTemplate.getForObject(url, OSRMResponse.class);
-        if (response != null && response.getRoutes() != null && !response.getRoutes().isEmpty()) {
-            Double distanciaMetros = response.getRoutes().get(0).getDistance();
-            Double duracionSegundos = response.getRoutes().get(0).getDuration();
-
-            tramo.setDistanciaKm(distanciaMetros / 1000.0); // km
-            tramo.setTiempoEstimado(duracionSegundos / 60.0); // minutos
-        }
+    private DepositoDTO depositoDTOFromEntity(Deposito deposito) {
+        if (deposito == null) return null;
+        return new DepositoDTO(
+                deposito.getIdDeposito(),
+                deposito.getNombre(),
+                deposito.getDireccion(),
+                deposito.getLatitud(),
+                deposito.getLongitud(),
+                deposito.getCostoEstadiaDiario()
+        );
     }
 
-    private Double getLatitud(Integer id, boolean esOrigen, TipoTramo tipoTramo) {
-        switch (tipoTramo) {
-            case ORIGEN_DEPOSITO:
-            case DEPOSITO_DEPOSITO:
-            case DEPOSITO_DESTINO:
-                return depositoRepo.findById(id).orElseThrow().getLatitud();
-            case ORIGEN_DESTINO:
-                return ubicacionRepo.findById(id).orElseThrow().getLatitud();
-            default: throw new IllegalArgumentException("TipoTramo desconocido: " + tipoTramo);
-        }
+    private EstadoDTO estadoDTOFromEntity(Estado estado) {
+        if (estado == null) return null;
+        return new EstadoDTO(
+                estado.getIdEstado(),
+                estado.getAmbito(),
+                estado.getNombre(),
+                estado.getDescripcion()
+        );
     }
 
-    private Double getLongitud(Integer id, boolean esOrigen, TipoTramo tipoTramo) {
-        switch (tipoTramo) {
-            case ORIGEN_DEPOSITO:
-            case DEPOSITO_DEPOSITO:
-            case DEPOSITO_DESTINO:
-                return depositoRepo.findById(id).orElseThrow().getLongitud();
-            case ORIGEN_DESTINO:
-                return ubicacionRepo.findById(id).orElseThrow().getLongitud();
-            default: throw new IllegalArgumentException("TipoTramo desconocido: " + tipoTramo);
-        }
-    }
-
-    // =========================
-    // Clase interna para OSRM
-    // =========================
-    public static class OSRMResponse {
-        private List<Route> routes;
-        public List<Route> getRoutes() { return routes; }
-        public void setRoutes(List<Route> routes) { this.routes = routes; }
-
-        public static class Route {
-            private Double distance;
-            private Double duration;
-            public Double getDistance() { return distance; }
-            public void setDistance(Double distance) { this.distance = distance; }
-            public Double getDuration() { return duration; }
-        }
+    private CamionDTO camionDTOFromEntity(Camion camion) {
+        if (camion == null) return null;
+        return new CamionDTO(
+                camion.getPatente(),
+                camion.getNombreTransportista(),
+                camion.getTelefono(),
+                camion.getCapacidadPeso(),
+                camion.getCapacidadVolumen(),
+                camion.getDisponible(),
+                camion.getCostoBaseKm(),
+                camion.getConsumoCombustible()
+        );
     }
 }

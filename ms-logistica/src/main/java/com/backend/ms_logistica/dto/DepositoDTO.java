@@ -7,7 +7,7 @@ public class DepositoDTO {
 
     private Integer idDeposito;
 
-    @NotBlank(message = "El nombre del depósito es obligatorio")
+    @NotBlank(message = "El nombre es obligatorio")
     private String nombre;
 
     @NotBlank(message = "La dirección es obligatoria")
@@ -21,9 +21,11 @@ public class DepositoDTO {
 
     private Double costoEstadiaDiario;
 
+    // Constructores
     public DepositoDTO() {}
 
-    public DepositoDTO(Integer idDeposito, String nombre, String direccion, Double latitud, Double longitud, Double costoEstadiaDiario) {
+    public DepositoDTO(Integer idDeposito, String nombre, String direccion,
+                       Double latitud, Double longitud, Double costoEstadiaDiario) {
         this.idDeposito = idDeposito;
         this.nombre = nombre;
         this.direccion = direccion;
@@ -32,7 +34,7 @@ public class DepositoDTO {
         this.costoEstadiaDiario = costoEstadiaDiario;
     }
 
-    // Getters y setters
+    // Getters y Setters
     public Integer getIdDeposito() { return idDeposito; }
     public void setIdDeposito(Integer idDeposito) { this.idDeposito = idDeposito; }
 
@@ -49,5 +51,7 @@ public class DepositoDTO {
     public void setLongitud(Double longitud) { this.longitud = longitud; }
 
     public Double getCostoEstadiaDiario() { return costoEstadiaDiario; }
-    public void setCostoEstadiaDiario(Double costoEstadiaDiario) { this.costoEstadiaDiario = costoEstadiaDiario; }
+    public void setCostoEstadiaDiario(Double costoEstadiaDiario) {
+        this.costoEstadiaDiario = costoEstadiaDiario;
+    }
 }
