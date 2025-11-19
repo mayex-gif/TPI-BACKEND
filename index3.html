@@ -1,0 +1,793 @@
+<!doctype html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Panel TPI - Backend</title>
+    <style>
+        :root{--accent:#2b6cb0;--muted:#f4f6fb;--danger:#e53e3e}
+        body{font-family:Inter,system-ui,Segoe UI,Roboto,"Helvetica Neue",Arial;margin:0;background:#f7fafc;color:#1a202c}
+        header{background:linear-gradient(90deg,#ffffff, #eef3fb);padding:12px 20px;box-shadow:0 1px 0 rgba(0,0,0,.05)}
+        .wrap{display:flex;height:calc(100vh - 56px)}
+        nav{width:260px;background:white;border-right:1px solid #e6edf3;padding:12px;box-sizing:border-box;overflow:auto}
+        nav h2{margin:6px 0 12px;font-size:14px;color:var(--accent)}
+        .nav-item{display:block;padding:10px;border-radius:6px;color:#1f2937;text-decoration:none;margin-bottom:6px;cursor:pointer}
+        .nav-item:hover{background:#f1f5f9}
+        .nav-item.active{background:var(--accent);color:white}
+        main{flex:1;padding:16px;overflow:auto}
+        .panel{background:white;border-radius:8px;padding:14px;box-shadow:0 6px 18px rgba(11,22,39,.03);max-width:1100px}
+        h3{margin-top:0}
+        .grid{display:grid;grid-template-columns:1fr 420px;gap:12px}
+        .list{max-height:60vh;overflow:auto;border:1px solid #eef2f7;padding:8px;border-radius:6px}
+        .list-item{padding:8px;border-bottom:1px solid #f0f4f8;cursor:pointer}
+        .list-item:hover{background:#fbfcff}
+        label{display:block;font-size:13px;margin:8px 0 4px}
+        input, select, textarea{width:100%;padding:8px;border:1px solid #e6edf3;border-radius:6px;box-sizing:border-box}
+        button{background:var(--accent);color:white;padding:8px 10px;border:0;border-radius:6px;cursor:pointer}
+        button.ghost{background:#f1f5f9;color:#111}
+        .row{display:flex;gap:8px}
+        .small{font-size:12px;color:#64748b}
+        pre{background:#0f1724;color:#e6eefb;padding:8px;border-radius:6px;overflow:auto}
+        .actions{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap}
+        .success{color:green}
+        .error{color:var(--danger)}
+        footer{padding:8px 16px;font-size:13px;color:#475569}
+    </style>
+</head>
+<body>
+<header>
+    <strong>Panel minimal TPI — Frontend de pruebas</strong>
+</header>
+
+<div class="wrap">
+    <nav>
+        <h2>Servicios</h2>
+        <div id="navList">
+            <div class="nav-item active" data-view="solicitudes">Solicitudes</div>
+            <div class="nav-item" data-view="rutas">Rutas</div>
+            <div class="nav-item" data-view="tramos">Tramos</div>
+            <div class="nav-item" data-view="contenedores">Contenedores</div>
+            <div class="nav-item" data-view="camiones">Camiones</div>
+            <div class="nav-item" data-view="depositos">Depósitos</div>
+            <div class="nav-item" data-view="estados">Estados</div>
+            <div class="nav-item" data-view="clientes">Clientes</div>
+        </div>
+
+        <hr style="margin:10px 0" />
+        <div class="small">Base URLs</div>
+        <div class="small">API principal: <code id="apiBase">http://localhost:8082/api/v0.1</code></div>
+        <div class="small">MS Clientes: <code id="apiClientesBase">http://localhost:8081/api/v0.1</code></div>
+        <p class="small" style="margin-top:8px">Para evitar bloqueos CORS, sirve este archivo desde un servidor estático o habilitá CORS en los backends.</p>
+    </nav>
+
+    <main>
+        <div class="panel" id="viewContainer">
+            <!-- Dynamic content injected here -->
+        </div>
+    </main>
+</div>
+
+<footer>Útil para pruebas rápidas. Modifica la base URL si tus servicios corren en otra URL/puerto.</footer>
+
+<script>
+    /*
+      index.html - minimal admin UI for your TPI controllers
+      - Uses two base URLs:
+          apiBase = http://localhost:8082/api/v0.1  (main services)
+          clientesBase = http://localhost:8081/api/v0.1 (clientes)
+      - Each view exposes list, create form and item actions
+      - No frameworks. Modify as needed.
+    */
+
+    const apiBase = document.getElementById('apiBase').textContent.trim();
+    const clientesBase = document.getElementById('apiClientesBase').textContent.trim();
+
+    const views = {
+        solicitudes: { title: 'Solicitudes', render },
+        rutas: { title: 'Rutas', render },
+        tramos: { title: 'Tramos', render },
+        contenedores: { title: 'Contenedores', render },
+        camiones: { title: 'Camiones', render },
+        depositos: { title: 'Depósitos', render },
+        estados: { title: 'Estados', render },
+        clientes: { title: 'Clientes', render }
+    };
+
+    document.querySelectorAll('.nav-item').forEach(el=>{
+        el.addEventListener('click', ()=> {
+            document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+            el.classList.add('active');
+            const view = el.dataset.view;
+            showView(view);
+        });
+    });
+
+    showView('solicitudes');
+
+    function showView(view) {
+        const container = document.getElementById('viewContainer');
+        container.innerHTML = '';
+        const title = document.createElement('h3');
+        title.textContent = views[view].title;
+        container.appendChild(title);
+        views[view].render(container, view);
+    }
+
+    /* ---------- Helpers ---------- */
+
+    function qs(id){ return document.getElementById(id); }
+
+    async function apiFetch(url, options = {}) {
+        try {
+            const res = await fetch(url, {
+                headers: { 'Content-Type': 'application/json' },
+                ...options
+            });
+            const text = await res.text();
+            let data;
+            try { data = text ? JSON.parse(text) : null; } catch(e){ data = text; }
+            if (!res.ok) throw { status: res.status, payload: data || text || res.statusText };
+            return data;
+        } catch (err) {
+            throw err;
+        }
+    }
+
+    function showResultBox(parent, content, isError=false) {
+        let el = parent.querySelector('.resultBox');
+        if (!el) {
+            el = document.createElement('pre');
+            el.className = 'resultBox';
+            parent.appendChild(el);
+        }
+        el.textContent = typeof content === 'string' ? content : JSON.stringify(content, null, 2);
+        el.style.border = isError ? '1px solid #fda4af' : '1px solid #c7f9d5';
+        el.style.background = isError ? '#fff1f2' : '#f6fffa';
+    }
+
+    /* ---------- RENDERERS POR VISTA ---------- */
+
+    function render(container, view) {
+        switch(view) {
+            case 'solicitudes': renderSolicitudes(container); break;
+            case 'rutas': renderRutas(container); break;
+            case 'tramos': renderTramos(container); break;
+            case 'contenedores': renderContenedores(container); break;
+            case 'camiones': renderCamiones(container); break;
+            case 'depositos': renderDepositos(container); break;
+            case 'estados': renderEstados(container); break;
+            case 'clientes': renderClientes(container); break;
+            default: container.innerHTML = '<p>No implementado</p>';
+        }
+    }
+
+    /* ------------------ SOLICITUDES ------------------ */
+    function renderSolicitudes(container) {
+        const grid = document.createElement('div'); grid.className='grid';
+        const left = document.createElement('div'); const right = document.createElement('div');
+        grid.append(left,right); container.appendChild(grid);
+
+        // Left: list
+        const listBox = document.createElement('div');
+        const toolbar = document.createElement('div'); toolbar.className='row';
+        const btnRefresh = document.createElement('button'); btnRefresh.textContent='Refrescar';
+        btnRefresh.onclick = loadSolicitudes;
+        toolbar.appendChild(btnRefresh);
+        left.appendChild(toolbar);
+        left.appendChild(listBox);
+
+        async function loadSolicitudes(){
+            listBox.innerHTML = '<div class="small">Cargando...</div>';
+            try {
+                const data = await apiFetch(`${apiBase}/solicitudes`);
+                listBox.innerHTML = '';
+                for (const s of data) {
+                    const it = document.createElement('div'); it.className='list-item';
+                    it.textContent = `#${s.idSolicitud} - cliente:${s.idCliente} - estado:${s.estado}`;
+                    it.onclick = ()=> showDetalle(s);
+                    listBox.appendChild(it);
+                }
+            } catch(e){ listBox.innerHTML = 'Error: '+(e.payload || e); }
+        }
+
+        // Right: details / create
+        const details = document.createElement('div');
+        right.appendChild(details);
+
+        function showDetalle(s) {
+            details.innerHTML = '';
+            const h = document.createElement('h4'); h.textContent = 'Solicitud #' + s.idSolicitud;
+            details.appendChild(h);
+
+            const info = document.createElement('div');
+            info.innerHTML = `<div class="small">Cliente: ${s.idCliente}</div>
+                      <div class="small">Estado: ${s.estado}</div>
+                      <div class="small">RutaId: ${s.rutaId || '---'}</div>
+                      <div class="small">ContenedorId: ${s.contenedorId || '---'}</div>`;
+            details.appendChild(info);
+
+            const actions = document.createElement('div'); actions.className='actions';
+            const btnRutas = document.createElement('button'); btnRutas.textContent='Consultar rutas tentativas';
+            btnRutas.onclick = async ()=> {
+                try {
+                    const rutas = await apiFetch(`${apiBase}/solicitudes/${s.idSolicitud}/rutas-tentativas`);
+                    showResultBox(details, rutas);
+                } catch(err){ showResultBox(details, err.payload||err,'error'); }
+            };
+            actions.appendChild(btnRutas);
+
+            const btnAsignRuta = document.createElement('button'); btnAsignRuta.textContent='Asignar ruta (auto)';
+            btnAsignRuta.onclick = async ()=>{
+                try {
+                    const updated = await apiFetch(`${apiBase}/solicitudes/${s.idSolicitud}/asignar-ruta`, {
+                        method: 'PATCH',
+                        body: JSON.stringify(null)
+                    });
+                    showResultBox(details, updated);
+                    loadSolicitudes();
+                } catch(err){ showResultBox(details, err.payload||err, true); }
+            };
+            actions.appendChild(btnAsignRuta);
+
+            const btnEstado = document.createElement('button'); btnEstado.textContent='Cambiar estado -> EN_TRANSITO';
+            btnEstado.onclick = async ()=>{
+                try {
+                    const updated = await apiFetch(`${apiBase}/solicitudes/${s.idSolicitud}/finalizar`, { method: 'PATCH' });
+                    showResultBox(details, updated);
+                    loadSolicitudes();
+                } catch(err){ showResultBox(details, err.payload||err, true); }
+            };
+            actions.appendChild(btnEstado);
+
+            details.appendChild(actions);
+        }
+
+        // Create form
+        const form = document.createElement('div');
+        form.innerHTML = `
+    <h4>Crear solicitud</h4>
+    <label>idCliente</label><input id="sol_idCliente" />
+    <label>descripcion</label><input id="sol_descripcion" />
+    <label>origenLat</label><input id="sol_origenLat" />
+    <label>origenLon</label><input id="sol_origenLon" />
+    <label>destinoLat</label><input id="sol_destinoLat" />
+    <label>destinoLon</label><input id="sol_destinoLon" />
+    <div class="actions"><button id="sol_create">Crear</button></div>
+  `;
+        right.appendChild(form);
+        form.querySelector('#sol_create').onclick = async ()=>{
+            const payload = {
+                idCliente: Number(form.querySelector('#sol_idCliente').value||0),
+                descripcion: form.querySelector('#sol_descripcion').value||'',
+                origenLat: Number(form.querySelector('#sol_origenLat').value||0),
+                origenLon: Number(form.querySelector('#sol_origenLon').value||0),
+                destinoLat: Number(form.querySelector('#sol_destinoLat').value||0),
+                destinoLon: Number(form.querySelector('#sol_destinoLon').value||0)
+            };
+            try {
+                const created = await apiFetch(`${apiBase}/solicitudes`, { method: 'POST', body: JSON.stringify(payload) });
+                showResultBox(form, created);
+                loadSolicitudes();
+            } catch(err){ showResultBox(form, err.payload||err, true); }
+        };
+
+        loadSolicitudes();
+    }
+
+    /* ------------------ RUTAS ------------------ */
+    function renderRutas(container) {
+        const grid = document.createElement('div'); grid.className='grid';
+        const left = document.createElement('div'); const right = document.createElement('div');
+        grid.append(left,right); container.appendChild(grid);
+
+        const listBox = document.createElement('div');
+        const btnRefresh = document.createElement('button'); btnRefresh.textContent='Refrescar';
+        btnRefresh.onclick = loadRutas;
+        left.appendChild(btnRefresh);
+        left.appendChild(listBox);
+
+        async function loadRutas(){
+            listBox.innerHTML = 'Cargando...';
+            try {
+                const data = await apiFetch(`${apiBase}/rutas`);
+                listBox.innerHTML='';
+                for (const r of data) {
+                    const it = document.createElement('div'); it.className='list-item';
+                    it.textContent = `#${r.idRuta} - solicitud:${r.solicitudId} - tramos:${r.cantidadTramos}`;
+                    it.onclick = ()=> showDetalle(r);
+                    listBox.appendChild(it);
+                }
+            } catch(e){ listBox.innerHTML = 'Error: '+(e.payload||e); }
+        }
+
+        const details = document.createElement('div'); right.appendChild(details);
+        function showDetalle(r) {
+            details.innerHTML = `<h4>Ruta #${r.idRuta}</h4><div class="small">Solicitud: ${r.solicitudId}</div>
+      <div class="small">Cantidad tramos: ${r.cantidadTramos}</div>`;
+            showResultBox(details, r.tramos || []);
+        }
+
+        loadRutas();
+    }
+
+    /* ------------------ TRAMOS ------------------ */
+    function renderTramos(container) {
+        const grid = document.createElement('div'); grid.className='grid';
+        const left = document.createElement('div'); const right = document.createElement('div');
+        grid.append(left,right); container.appendChild(grid);
+
+        const listBox = document.createElement('div');
+        const toolbar = document.createElement('div'); toolbar.className='row';
+        const btnRefresh = document.createElement('button'); btnRefresh.textContent='Refrescar';
+        btnRefresh.onclick = loadTramos;
+        toolbar.appendChild(btnRefresh);
+        left.appendChild(toolbar); left.appendChild(listBox);
+
+        const details = document.createElement('div'); right.appendChild(details);
+
+        async function loadTramos(){
+            listBox.innerHTML = 'Cargando...';
+            try {
+                const data = await apiFetch(`${apiBase}/tramos`);
+                listBox.innerHTML='';
+                for (const t of data) {
+                    const it = document.createElement('div'); it.className='list-item';
+                    it.textContent = `#${t.idTramo} - ruta:${t.rutaId} - tipo:${t.tipoTramo} - estadoId:${t.estadoId}`;
+                    it.onclick = ()=> showDetalle(t);
+                    listBox.appendChild(it);
+                }
+            } catch(e){ listBox.innerHTML='Error: '+(e.payload||e); }
+        }
+
+        function showDetalle(t){
+            details.innerHTML = `<h4>Tramo #${t.idTramo}</h4>
+      <div class="small">Ruta: ${t.rutaId}</div>
+      <div class="small">Tipo: ${t.tipoTramo}</div>
+      <div class="small">Deposito inicio: ${t.depositoInicioId || '---'}</div>
+      <div class="small">Deposito fin: ${t.depositoFinId || '---'}</div>
+    `;
+            const actions = document.createElement('div'); actions.className='actions';
+
+            const btnAsign = document.createElement('button'); btnAsign.textContent='Asignar camión';
+            btnAsign.onclick = async ()=> {
+                const patente = prompt('Patente del camión:');
+                if (!patente) return;
+                try {
+                    const updated = await apiFetch(`${apiBase}/tramos/${t.idTramo}/asignar-camion?patenteCamion=${encodeURIComponent(patente)}`, { method: 'PATCH' });
+                    showResultBox(details, updated);
+                    loadTramos();
+                } catch(err){ showResultBox(details, err.payload||err, true); }
+            };
+            actions.appendChild(btnAsign);
+
+            const btnIniciar = document.createElement('button'); btnIniciar.textContent='Iniciar tramo';
+            btnIniciar.onclick = async ()=> {
+                try {
+                    const updated = await apiFetch(`${apiBase}/tramos/${t.idTramo}/iniciar`, { method: 'PATCH' });
+                    showResultBox(details, updated);
+                    loadTramos();
+                } catch(err){ showResultBox(details, err.payload||err, true); }
+            };
+            actions.appendChild(btnIniciar);
+
+            const btnFinalizar = document.createElement('button'); btnFinalizar.textContent='Finalizar tramo';
+            btnFinalizar.onclick = async ()=> {
+                try {
+                    const updated = await apiFetch(`${apiBase}/tramos/${t.idTramo}/finalizar`, { method: 'PATCH' });
+                    showResultBox(details, updated);
+                    loadTramos();
+                } catch(err){ showResultBox(details, err.payload||err, true); }
+            };
+            actions.appendChild(btnFinalizar);
+
+            details.appendChild(actions);
+        }
+
+        // Create form
+        const form = document.createElement('div');
+        form.innerHTML = `
+    <h4>Crear tramo</h4>
+    <label>rutaId</label><input id="tr_rutaId" />
+    <label>tipoTramo</label><select id="tr_tipo">
+      <option>ORIGEN_DEPOSITO</option><option>DEPOSITO_DEPOSITO</option><option>DEPOSITO_DESTINO</option><option>ORIGEN_DESTINO</option>
+    </select>
+    <label>depositoInicioId (nullable)</label><input id="tr_depInicio" />
+    <label>depositoFinId (nullable)</label><input id="tr_depFin" />
+    <label>inicioLat</label><input id="tr_inicioLat" />
+    <label>inicioLon</label><input id="tr_inicioLon" />
+    <label>finLat</label><input id="tr_finLat" />
+    <label>finLon</label><input id="tr_finLon" />
+    <label>estadoId (buscar en /estados)</label><input id="tr_estadoId" />
+    <div class="actions"><button id="tr_create">Crear tramo</button></div>
+  `;
+        right.appendChild(form);
+        form.querySelector('#tr_create').onclick = async ()=>{
+            const payload = {
+                rutaId: Number(form.querySelector('#tr_rutaId').value||0),
+                tipoTramo: form.querySelector('#tr_tipo').value,
+                depositoInicioId: form.querySelector('#tr_depInicio').value ? Number(form.querySelector('#tr_depInicio').value) : null,
+                depositoFinId: form.querySelector('#tr_depFin').value ? Number(form.querySelector('#tr_depFin').value) : null,
+                inicioLat: form.querySelector('#tr_inicioLat').value ? Number(form.querySelector('#tr_inicioLat').value) : null,
+                inicioLon: form.querySelector('#tr_inicioLon').value ? Number(form.querySelector('#tr_inicioLon').value) : null,
+                finLat: form.querySelector('#tr_finLat').value ? Number(form.querySelector('#tr_finLat').value) : null,
+                finLon: form.querySelector('#tr_finLon').value ? Number(form.querySelector('#tr_finLon').value) : null,
+                estadoId: Number(form.querySelector('#tr_estadoId').value||0)
+            };
+            try {
+                const created = await apiFetch(`${apiBase}/tramos`, { method: 'POST', body: JSON.stringify(payload) });
+                showResultBox(form, created);
+                loadTramos();
+            } catch(err){ showResultBox(form, err.payload||err, true); }
+        };
+
+        loadTramos();
+    }
+
+    /* ------------------ CONTENEDORES ------------------ */
+    function renderContenedores(container) {
+        const grid = document.createElement('div'); grid.className='grid';
+        const left = document.createElement('div'); const right = document.createElement('div');
+        grid.append(left,right); container.appendChild(grid);
+
+        const listBox = document.createElement('div');
+        const btnRefresh = document.createElement('button'); btnRefresh.textContent='Refrescar';
+        btnRefresh.onclick = loadContenedores;
+        left.appendChild(btnRefresh); left.appendChild(listBox);
+
+        const details = document.createElement('div'); right.appendChild(details);
+
+        async function loadContenedores(){
+            listBox.innerHTML = 'Cargando...';
+            try {
+                const data = await apiFetch(`${apiBase}/contenedores`);
+                listBox.innerHTML='';
+                for (const c of data) {
+                    const it = document.createElement('div'); it.className='list-item';
+                    it.textContent = `#${c.idContenedor} - solicitud:${c.solicitudId || '---'} - estado:${c.estado}`;
+                    it.onclick = ()=> showDetalle(c);
+                    listBox.appendChild(it);
+                }
+            } catch(e){ listBox.innerHTML = 'Error: '+(e.payload||e); }
+        }
+
+        function showDetalle(c) {
+            details.innerHTML = `<h4>Contenedor #${c.idContenedor}</h4>
+      <div class="small">Solicitud: ${c.solicitudId || '---'}</div>
+      <div class="small">Peso: ${c.peso}</div>
+      <div class="small">Volumen: ${c.volumen}</div>
+      <div class="small">Estado: ${c.estado}</div>
+    `;
+            const actions = document.createElement('div'); actions.className='actions';
+
+            const btnAsign = document.createElement('button'); btnAsign.textContent='Asignar a solicitud';
+            btnAsign.onclick = async ()=>{
+                const idSol = prompt('Id solicitud:');
+                if (!idSol) return;
+                try {
+                    const updated = await apiFetch(`${apiBase}/contenedores/${c.idContenedor}/asignar-solicitud/${idSol}`, { method: 'POST' });
+                    showResultBox(details, updated);
+                    loadContenedores();
+                } catch(err){ showResultBox(details, err.payload||err, true); }
+            };
+            actions.appendChild(btnAsign);
+
+            const btnCambiar = document.createElement('button'); btnCambiar.textContent='Cambiar estado (manual)';
+            btnCambiar.onclick = async ()=>{
+                const nombre = prompt('Estado (EN_ORIGEN, EN_DEPOSITO, EN_TRANSITO, EN_DESTINO, LIBRE):');
+                if (!nombre) return;
+                try {
+                    const updated = await apiFetch(`${apiBase}/contenedores/${c.idContenedor}/estado?nombreEstado=${encodeURIComponent(nombre)}`, { method: 'PATCH' });
+                    showResultBox(details, updated);
+                    loadContenedores();
+                } catch(err){ showResultBox(details, err.payload||err, true); }
+            };
+            actions.appendChild(btnCambiar);
+
+            details.appendChild(actions);
+        }
+
+        // Create
+        const form = document.createElement('div');
+        form.innerHTML = `
+    <h4>Crear contenedor</h4>
+    <label>peso</label><input id="co_peso" />
+    <label>volumen</label><input id="co_volumen" />
+    <div class="actions"><button id="co_create">Crear</button></div>
+  `;
+        right.appendChild(form);
+        form.querySelector('#co_create').onclick = async ()=>{
+            const payload = { peso: Number(form.querySelector('#co_peso').value||0), volumen: String(form.querySelector('#co_volumen').value||'') };
+            try {
+                const created = await apiFetch(`${apiBase}/contenedores`, { method: 'POST', body: JSON.stringify(payload) });
+                showResultBox(form, created);
+                loadContenedores();
+            } catch(err){ showResultBox(form, err.payload||err, true); }
+        };
+
+        loadContenedores();
+    }
+
+    /* ------------------ CAMIONES ------------------ */
+    function renderCamiones(container) {
+        const grid = document.createElement('div'); grid.className='grid';
+        const left = document.createElement('div'); const right = document.createElement('div');
+        grid.append(left,right); container.appendChild(grid);
+
+        const listBox = document.createElement('div');
+        const btnRefresh = document.createElement('button'); btnRefresh.textContent='Refrescar'; btnRefresh.onclick=loadCamiones;
+        left.appendChild(btnRefresh); left.appendChild(listBox);
+        const details = document.createElement('div'); right.appendChild(details);
+
+        async function loadCamiones(){
+            listBox.innerHTML = 'Cargando...';
+            try {
+                const data = await apiFetch(`${apiBase}/camiones`);
+                listBox.innerHTML='';
+                for (const c of data) {
+                    const it = document.createElement('div'); it.className='list-item';
+                    it.textContent = `${c.patente} - ${c.nombreTransportista} - disp:${c.disponible}`;
+                    it.onclick = ()=> showDetalle(c);
+                    listBox.appendChild(it);
+                }
+            } catch(e){ listBox.innerHTML = 'Error: '+(e.payload||e); }
+        }
+
+        function showDetalle(c) {
+            details.innerHTML = `<h4>Camión ${c.patente}</h4>
+      <div class="small">Transportista: ${c.nombreTransportista}</div>
+      <div class="small">Capacidad peso: ${c.capacidadPeso}</div>
+      <div class="small">Capacidad vol: ${c.capacidadVolumen}</div>
+      <div class="small">Disponible: ${c.disponible}</div>
+    `;
+            const actions = document.createElement('div'); actions.className='actions';
+            const btnOcupar = document.createElement('button'); btnOcupar.textContent='Marcar ocupado';
+            btnOcupar.onclick = async ()=> {
+                try {
+                    await apiFetch(`${apiBase}/camiones/${c.patente}/ocupar`, { method: 'PATCH' });
+                    showResultBox(details, 'OK');
+                    loadCamiones();
+                } catch(err){ showResultBox(details, err.payload||err, true); }
+            };
+            actions.appendChild(btnOcupar);
+            const btnLiberar = document.createElement('button'); btnLiberar.textContent='Marcar disponible';
+            btnLiberar.onclick = async ()=> {
+                try {
+                    await apiFetch(`${apiBase}/camiones/${c.patente}/liberar`, { method: 'PATCH' });
+                    showResultBox(details, 'OK');
+                    loadCamiones();
+                } catch(err){ showResultBox(details, err.payload||err, true); }
+            };
+            actions.appendChild(btnLiberar);
+
+            const btnBuscar = document.createElement('button'); btnBuscar.textContent='Buscar compatibles';
+            btnBuscar.onclick = async ()=> {
+                const peso = prompt('Peso requerido:'); const vol = prompt('Volumen requerido:');
+                if (!peso||!vol) return;
+                try {
+                    const compatibles = await apiFetch(`${apiBase}/camiones/buscar-compatibles?pesoRequerido=${encodeURIComponent(peso)}&volumenRequerido=${encodeURIComponent(vol)}`);
+                    showResultBox(details, compatibles);
+                } catch(err){ showResultBox(details, err.payload||err, true); }
+            };
+            actions.appendChild(btnBuscar);
+
+            details.appendChild(actions);
+        }
+
+        // Create form
+        const form = document.createElement('div');
+        form.innerHTML = `
+    <h4>Crear camión</h4>
+    <label>patente</label><input id="cam_patente" />
+    <label>nombreTransportista</label><input id="cam_nombre" />
+    <label>telefono</label><input id="cam_telefono" />
+    <label>capacidadPeso</label><input id="cam_peso" />
+    <label>capacidadVolumen</label><input id="cam_vol" />
+    <div class="actions"><button id="cam_create">Crear</button></div>
+  `;
+        right.appendChild(form);
+        form.querySelector('#cam_create').onclick = async ()=>{
+            const payload = {
+                patente: form.querySelector('#cam_patente').value,
+                nombreTransportista: form.querySelector('#cam_nombre').value,
+                telefono: form.querySelector('#cam_telefono').value,
+                capacidadPeso: Number(form.querySelector('#cam_peso').value||0),
+                capacidadVolumen: Number(form.querySelector('#cam_vol').value||0)
+            };
+            try {
+                const created = await apiFetch(`${apiBase}/camiones`, { method: 'POST', body: JSON.stringify(payload) });
+                showResultBox(form, created);
+                loadCamiones();
+            } catch(err){ showResultBox(form, err.payload||err, true); }
+        };
+
+        loadCamiones();
+    }
+
+    /* ------------------ DEPOSITOS ------------------ */
+    function renderDepositos(container) {
+        const grid = document.createElement('div'); grid.className='grid';
+        const left=document.createElement('div'), right=document.createElement('div');
+        grid.append(left,right); container.appendChild(grid);
+
+        const listBox=document.createElement('div'); left.appendChild(listBox);
+        const btnRefresh=document.createElement('button'); btnRefresh.textContent='Refrescar'; btnRefresh.onclick=load;
+        left.appendChild(btnRefresh);
+
+        const details=document.createElement('div'); right.appendChild(details);
+
+        async function load(){
+            listBox.innerHTML='Cargando...';
+            try {
+                const data = await apiFetch(`${apiBase}/depositos`);
+                listBox.innerHTML='';
+                for (const d of data){
+                    const it=document.createElement('div'); it.className='list-item';
+                    it.textContent = `#${d.idDeposito} - ${d.nombre} - ${d.direccion}`;
+                    it.onclick = ()=> showDetalle(d);
+                    listBox.appendChild(it);
+                }
+            } catch(e){ listBox.innerHTML='Error: '+(e.payload||e) }
+        }
+
+        function showDetalle(d){
+            details.innerHTML=`<h4>Depósito #${d.idDeposito}</h4>
+      <div class="small">Nombre: ${d.nombre}</div>
+      <div class="small">Direccion: ${d.direccion}</div>
+      <div class="small">Lat: ${d.latitud} Lon: ${d.longitud}</div>
+    `;
+        }
+
+        // create
+        const form=document.createElement('div');
+        form.innerHTML=`
+    <h4>Crear depósito</h4>
+    <label>nombre</label><input id="dep_nombre" />
+    <label>direccion</label><input id="dep_direccion" />
+    <label>latitud</label><input id="dep_lat" />
+    <label>longitud</label><input id="dep_lon" />
+    <label>costoEstadiaDiario</label><input id="dep_costo" />
+    <div class="actions"><button id="dep_create">Crear</button></div>
+  `;
+        right.appendChild(form);
+        form.querySelector('#dep_create').onclick = async ()=>{
+            const payload = {
+                nombre: form.querySelector('#dep_nombre').value,
+                direccion: form.querySelector('#dep_direccion').value,
+                latitud: Number(form.querySelector('#dep_lat').value||0),
+                longitud: Number(form.querySelector('#dep_lon').value||0),
+                costoEstadiaDiario: Number(form.querySelector('#dep_costo').value||0)
+            };
+            try {
+                const created = await apiFetch(`${apiBase}/depositos`, { method: 'POST', body: JSON.stringify(payload) });
+                showResultBox(form, created);
+                load();
+            } catch(err) { showResultBox(form, err.payload||err, true); }
+        };
+
+        load();
+    }
+
+    /* ------------------ ESTADOS ------------------ */
+    function renderEstados(container){
+        const grid=document.createElement('div'); grid.className='grid';
+        const left=document.createElement('div'), right=document.createElement('div');
+        grid.append(left,right); container.appendChild(grid);
+
+        const listBox=document.createElement('div'); left.appendChild(listBox);
+        const btnRefresh=document.createElement('button'); btnRefresh.textContent='Refrescar'; btnRefresh.onclick = load;
+        left.appendChild(btnRefresh);
+        const details=document.createElement('div'); right.appendChild(details);
+
+        async function load(){
+            listBox.innerHTML='Cargando...';
+            try {
+                const data = await apiFetch(`${apiBase}/estados`);
+                listBox.innerHTML='';
+                for (const e of data){
+                    const it=document.createElement('div'); it.className='list-item';
+                    it.textContent = `#${e.idEstado} - ${e.ambito} - ${e.nombre}`;
+                    it.onclick = ()=> showDetalle(e);
+                    listBox.appendChild(it);
+                }
+            } catch(err){ listBox.innerHTML='Error: '+(err.payload||err) }
+        }
+
+        function showDetalle(e){
+            details.innerHTML = `<h4>Estado #${e.idEstado}</h4>
+      <div class="small">Ámbito: ${e.ambito}</div>
+      <div class="small">Nombre: ${e.nombre}</div>
+      <div class="small">Desc: ${e.descripcion || ''}</div>
+    `;
+        }
+
+        // create
+        const form = document.createElement('div');
+        form.innerHTML = `
+    <h4>Crear estado</h4>
+    <label>ambito</label>
+    <select id="est_ambito"><option>SOLICITUD</option><option>TRAMO</option><option>CONTENEDOR</option></select>
+    <label>nombre</label><input id="est_nombre" />
+    <label>descripcion</label><input id="est_descr" />
+    <div class="actions"><button id="est_create">Crear</button></div>
+  `;
+        right.appendChild(form);
+        form.querySelector('#est_create').onclick = async ()=>{
+            const payload = {
+                ambito: form.querySelector('#est_ambito').value,
+                nombre: form.querySelector('#est_nombre').value,
+                descripcion: form.querySelector('#est_descr').value
+            };
+            try {
+                const created = await apiFetch(`${apiBase}/estados`, { method: 'POST', body: JSON.stringify(payload) });
+                showResultBox(form, created);
+                load();
+            } catch(err){ showResultBox(form, err.payload||err, true); }
+        };
+
+        load();
+    }
+
+    /* ------------------ CLIENTES (MS CLIENTES en 8081) ------------------ */
+    function renderClientes(container){
+        const grid=document.createElement('div'); grid.className='grid';
+        const left=document.createElement('div'), right=document.createElement('div');
+        grid.append(left,right); container.appendChild(grid);
+
+        const listBox=document.createElement('div'); left.appendChild(listBox);
+        const btnRefresh=document.createElement('button'); btnRefresh.textContent='Refrescar'; btnRefresh.onclick = load;
+        left.appendChild(btnRefresh);
+        const details=document.createElement('div'); right.appendChild(details);
+
+        async function load(){
+            listBox.innerHTML='Cargando...';
+            try {
+                const data = await apiFetch(`${clientesBase}/clientes`);
+                listBox.innerHTML='';
+                for (const c of data){
+                    const it=document.createElement('div'); it.className='list-item';
+                    it.textContent = `#${c.idCliente} - ${c.nombre} - ${c.email || ''}`;
+                    it.onclick = ()=> showDetalle(c);
+                    listBox.appendChild(it);
+                }
+            } catch(err){ listBox.innerHTML='Error: '+(err.payload||err) }
+        }
+
+        function showDetalle(c){
+            details.innerHTML = `<h4>Cliente #${c.idCliente}</h4>
+      <div class="small">Nombre: ${c.nombre}</div>
+      <div class="small">Email: ${c.email || ''}</div>
+      <div class="small">Tel: ${c.telefono || ''}</div>
+    `;
+        }
+
+        // create
+        const form = document.createElement('div');
+        form.innerHTML = `
+    <h4>Crear cliente</h4>
+    <label>nombre</label><input id="cl_nombre" />
+    <label>email</label><input id="cl_email" />
+    <label>telefono</label><input id="cl_tel" />
+    <div class="actions"><button id="cl_create">Crear</button></div>
+  `;
+        right.appendChild(form);
+        form.querySelector('#cl_create').onclick = async ()=>{
+            const payload = {
+                nombre: form.querySelector('#cl_nombre').value,
+                email: form.querySelector('#cl_email').value,
+                telefono: form.querySelector('#cl_tel').value
+            };
+            try {
+                const created = await apiFetch(`${clientesBase}/clientes`, { method: 'POST', body: JSON.stringify(payload) });
+                showResultBox(form, created);
+                load();
+            } catch(err){ showResultBox(form, err.payload||err, true); }
+        };
+
+        load();
+    }
+
+    /* ------------------ UTILITARIOS Varios ------------------ */
+
+</script>
+</body>
+</html>

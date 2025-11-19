@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Visualización de Rutas de Logística (MS-Logistica)</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        #mapa {
+            height: 600px;
+            width: 80%;
+            margin: 20px auto;
+            border: 1px solid #ccc;
+        }
+        #info {
+            width: 80%;
+            margin: 20px auto;
+            padding: 15px;
+            border: 1px solid #ddd;
+            background-color: #f9f9f9;
+        }
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+        }
+        h2 { color: #333; }
+        .control-panel { margin-bottom: 20px; }
+        .error { color: red; font-weight: bold; }
+    </style>
+</head>
+<body>
+<h2>🚚 Visualizador de Ruta - MS Logística</h2>
+<div class="control-panel">
+    <label for="solicitudId">ID de Solicitud:</label>
+    <input type="number" id="solicitudId" value="2" min="1" required>
+    <button onclick="cargarRuta()">Cargar Ruta</button>
+</div>
+
+<div id="info">Esperando datos...</div>
+<div id="mapa"></div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+    // Configuración básica del mapa
+    var mapa = L.map('mapa').setView([-34.6037, -58.3816], 5); // Centro inicial en Argentina
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
+    }).addTo(mapa);
+
+    var capas = []; // Para almacenar marcadores y líneas
+    var rutaBaseUrl = 'http://localhost:8082/api/v0.1/rutas/solicitud/'; // ¡AJUSTA PUERTO SI ES NECESARIO!
+
+    function limpiarMapa() {
+        capas.forEach(capa => mapa.removeLayer(capa));
+        capas = [];
+    }
+
+    function cargarRuta() {
+        limpiarMapa();
+        const id = document.getElementById('solicitudId').value;
+        const url = rutaBaseUrl + id;
+        const infoDiv = document.getElementById('info');
+        infoDiv.innerHTML = 'Cargando ruta...';
+
+        fetch(url)
+            .then(response => {
+                if (!response.ok) {
+                    return response.json().then(err => {
+                        throw new Error(err.mensaje || `Error HTTP: ${response.status}`);
+                    });
+                }
+                return response.json();
+            })
+            .then(data => {
+                visualizarRuta(data);
+                infoDiv.innerHTML = `
+                        <h3>Ruta Encontrada (ID: ${data.idRuta})</h3>
+                        <p><strong>Solicitud:</strong> ${data.idSolicitud}</p>
+                        <p><strong>Distancia Total:</strong> ${data.distanciaTotal ? data.distanciaTotal.toFixed(2) + ' km' : 'N/A'}</p>
+                        <p><strong>Costo Estimado Total:</strong> $${data.costoEstimadoTotal ? data.costoEstimadoTotal.toFixed(2) : 'N/A'}</p>
+                        <p><strong>Tramos:</strong> ${data.cantidadTramos}</p>
+                    `;
+            })
+            .catch(error => {
+                infoDiv.innerHTML = `<span class="error">Error al cargar la ruta: ${error.message}</span>`;
+            });
+    }
+
+    function visualizarRuta(rutaData) {
+        let latlngs = [];
+        let bounds = L.latLngBounds([]);
+
+        // Colores para los tramos
+        const colores = ['#E64A19', '#0097A7', '#689F38', '#FBC02D', '#5D4037'];
+        let colorIndex = 0;
+
+        rutaData.tramos.forEach(tramo => {
+            const color = colores[colorIndex % colores.length];
+            colorIndex++;
+
+            const latInicio = tramo.depositoInicio ? tramo.depositoInicio.latitud : tramo.inicioLat;
+            const lonInicio = tramo.depositoInicio ? tramo.depositoInicio.longitud : tramo.inicioLon;
+            const latFin = tramo.depositoFin ? tramo.depositoFin.latitud : tramo.finLat;
+            const lonFin = tramo.depositoFin ? tramo.finLon : tramo.finLon;
+
+            if (latInicio && lonInicio && latFin && lonFin) {
+                const start = [latInicio, lonInicio];
+                const end = [latFin, lonFin];
+
+                latlngs.push(start, end);
+                bounds.extend(start);
+                bounds.extend(end);
+
+                // Dibujar la línea del tramo
+                const polyline = L.polyline([start, end], {color: color, weight: 5}).addTo(mapa);
+                capas.push(polyline);
+
+                // Marcador de INICIO (solo si es origen o depósito)
+                const markerInicio = L.marker(start).addTo(mapa)
+                    .bindPopup(`<b>Tramo ${tramo.idTramo} - INICIO</b><br>Tipo: ${tramo.tipoTramo}<br>Desde: ${tramo.depositoInicio ? tramo.depositoInicio.nombre : 'Origen'}`);
+                capas.push(markerInicio);
+
+                // Marcador de FIN (solo si es depósito o destino)
+                const markerFin = L.marker(end).addTo(mapa)
+                    .bindPopup(`<b>Tramo ${tramo.idTramo} - FIN</b><br>Estado: ${tramo.estado.nombre}<br>Distancia: ${tramo.distanciaKm.toFixed(2)} km<br>Costo: $${tramo.costoEstimado.toFixed(2)}<br>Hacia: ${tramo.depositoFin ? tramo.depositoFin.nombre : 'Destino'}`);
+                capas.push(markerFin);
+            }
+        });
+
+        if (bounds.isValid()) {
+            mapa.fitBounds(bounds.pad(0.1)); // Zoom al área de la ruta
+        }
+    }
+
+    // Cargar la ruta de ejemplo al inicio
+    document.addEventListener('DOMContentLoaded', () => cargarRuta());
+</script>
+</body>
+</html>

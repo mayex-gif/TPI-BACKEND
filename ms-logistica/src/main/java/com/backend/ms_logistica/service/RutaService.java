@@ -5,26 +5,37 @@ import com.backend.ms_logistica.model.*;
 import com.backend.ms_logistica.repository.RutaRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.client.RestTemplate;
+import org.springframework.web.util.UriComponentsBuilder;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
 @Transactional
 public class RutaService {
 
+    private final OsrmService osrmService;
+
     private final RutaRepository rutaRepository;
     private final TramoService tramoService;
     private final EstadoService estadoService;
     private final DepositoService depositoService;
+    private final CamionService camionService;
+
+    private final RestTemplate restTemplate = new RestTemplate();
 
     public RutaService(RutaRepository rutaRepository, TramoService tramoService,
-                       EstadoService estadoService, DepositoService depositoService) {
+                       EstadoService estadoService, DepositoService depositoService,
+                       OsrmService osrmService, CamionService camionService) {
         this.rutaRepository = rutaRepository;
         this.tramoService = tramoService;
         this.estadoService = estadoService;
         this.depositoService = depositoService;
+        this.osrmService = osrmService;
+        this.camionService = camionService;
     }
 
     // ======== OPERACIONES CRUD ========
@@ -71,15 +82,14 @@ public class RutaService {
                 "ESTIMADO", AmbitoEstado.TRAMO);
         tramo.setEstado(estadoEstimado);
 
-        // Calcular distancia
-        Double distancia = calcularDistancia(
+        // 🚨 USO DE OSRM
+        Map<String, Double> metricas = osrmService.calcularMetricas(
                 solicitud.getOrigenLat(), solicitud.getOrigenLon(),
                 solicitud.getDestinoLat(), solicitud.getDestinoLon()
         );
-        tramo.setDistanciaKm(distancia);
 
-        // Estimar tiempo (asumiendo 60 km/h promedio)
-        tramo.setTiempoEstimado(distancia / 60.0);
+        tramo.setDistanciaKm(metricas.get("distanceKm"));
+        tramo.setTiempoEstimado(metricas.get("durationHours")); // Tiempo en horas
 
         ruta.agregarTramo(tramo);
         return rutaRepository.save(ruta);
@@ -165,28 +175,17 @@ public class RutaService {
         Double lonFin = tramo.getLongitudFin();
 
         if (latInicio != null && lonInicio != null && latFin != null && lonFin != null) {
-            Double distancia = calcularDistancia(latInicio, lonInicio, latFin, lonFin);
-            tramo.setDistanciaKm(distancia);
-            tramo.setTiempoEstimado(distancia / 60.0);
+            // 🚨 USO DE OSRM
+            Map<String, Double> metricas = osrmService.calcularMetricas(
+                    latInicio, lonInicio, latFin, lonFin
+            );
+
+            tramo.setDistanciaKm(metricas.get("distanceKm"));
+            tramo.setTiempoEstimado(metricas.get("durationHours"));
+            // TODO: Lógica de costo aquí
         }
 
         return tramo;
-    }
-
-    private Double calcularDistancia(Double lat1, Double lon1, Double lat2, Double lon2) {
-        final int RADIO_TIERRA_KM = 6371;
-
-        double dLat = Math.toRadians(lat2 - lat1);
-        double dLon = Math.toRadians(lon2 - lon1);
-
-        double a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-                Math.cos(Math.toRadians(lat1)) *
-                        Math.cos(Math.toRadians(lat2)) *
-                        Math.sin(dLon / 2) * Math.sin(dLon / 2);
-
-        double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-
-        return RADIO_TIERRA_KM * c;
     }
 
     // ======== MAPPERS ========

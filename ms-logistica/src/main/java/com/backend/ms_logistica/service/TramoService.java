@@ -102,6 +102,7 @@ public class TramoService {
         tramo.setFechaHoraFin(LocalDateTime.now());
 
         // Calcular costo real
+        // ESTE METODO NECESITA REFACTORING PORQUE LOS COSTOS REALES SE CALCULARIAN EN EL MS-TARIFAS
         if (tramo.getCamion() != null && tramo.getDistanciaKm() != null) {
             Double costoReal = tramo.getCamion().calcularCostoTramo(tramo.getDistanciaKm());
             tramo.setCostoReal(costoReal);

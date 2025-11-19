@@ -49,6 +49,9 @@
                     <button onclick="changeTab('solicitudes')" id="tab-solicitudes" class="w-full text-left px-4 py-2 rounded mb-2 tab-inactive">
                         📋 Solicitudes
                     </button>
+                    <button onclick="changeTab('pruebas-ruta')" id="tab-pruebas-ruta" class="w-full text-left px-4 py-2 rounded mb-2 tab-inactive">
+                        📍 Pruebas Ruta
+                    </button>
                     <button onclick="changeTab('tramos')" id="tab-tramos" class="w-full text-left px-4 py-2 rounded mb-2 tab-inactive">
                         🛣️ Tramos
                     </button>
@@ -121,39 +124,77 @@
                         </div>
                     </div>
                 `;
-            }
-        }
-
-        async function makeRequest(method, url, body = null) {
-            showStatus('loading', 'Procesando solicitud...');
-            
-            try {
-                const options = {
-                    method,
-                    headers: { 'Content-Type': 'application/json' }
-                };
-                
-                if (body) options.body = JSON.stringify(body);
-                
-                const res = await fetch(url, options);
-                
-                if (!res.ok) {
-                    const errorText = await res.text();
-                    throw new Error(`HTTP ${res.status}: ${errorText || res.statusText}`);
-                }
-                
-                const data = method === 'DELETE' ? null : await res.json();
-                showStatus('success', `Respuesta exitosa (${res.status})`, data);
-            } catch (err) {
-                showStatus('error', err.message);
-            }
-        }
-
-        function renderContent(tab) {
-            const area = document.getElementById('content-area');
-            
-            if (tab === 'clientes') {
+            } else if (tab === 'pruebas-ruta') {
                 area.innerHTML = `
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <h2 class="text-2xl font-bold text-gray-800 mb-6">⚙️ Pruebas de Rutas (RF3 & RF4)</h2>
+
+                <div class="bg-blue-50 border border-blue-200 rounded p-4 mb-6">
+                    <p class="text-sm text-blue-800">
+                        Esta sección prueba la generación de rutas. Primero, crea una **Solicitud en estado BORRADOR**. Luego, usa el ID de esa solicitud aquí.
+                    </p>
+                    <p class="text-sm text-blue-800 mt-2">
+                        **Ejemplo de Depósitos:** Si usas los IDs 1, 2, 3 en Depósitos, puedes probar la ruta con saltos.
+                    </p>
+                </div>
+
+                <form onsubmit="event.preventDefault(); consultarRutasTentativas()" class="space-y-4 mb-8 border-b pb-6">
+                    <h3 class="font-semibold text-lg">1. Consultar Rutas Tentativas (GET)</h3>
+                    <p class="text-sm text-gray-600">Muestra las rutas posibles sin asignarlas a la Solicitud.</p>
+                    <div class="flex gap-4">
+                        <input type="number" id="solicitudIdTentativa" placeholder="ID Solicitud *" required class="border rounded px-3 py-2 flex-1">
+                        <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+                            🔍 Consultar
+                        </button>
+                    </div>
+                </form>
+
+                <form onsubmit="event.preventDefault(); asignarRutaDefinitiva()" class="space-y-4">
+                    <h3 class="font-semibold text-lg">2. Asignar Ruta Definitiva (PATCH)</h3>
+                    <p class="text-sm text-gray-600">Asigna la ruta, calcula el costo/tiempo con OSRM y cambia el estado a **PROGRAMADA**.</p>
+                    <div class="grid grid-cols-3 gap-4">
+                        <input type="number" id="solicitudIdAsignar" placeholder="ID Solicitud *" required class="border rounded px-3 py-2">
+                        <input type="text" id="idsDepositos" placeholder="IDs Depósito (ej: 1,2)" class="border rounded px-3 py-2 col-span-2">
+                    </div>
+                    <button type="submit" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">
+                        🔗 Asignar Ruta
+                    </button>
+                </form>
+            </div>
+        `;
+            } // Fin de renderContent
+
+
+            async function makeRequest(method, url, body = null) {
+                showStatus('loading', 'Procesando solicitud...');
+
+                try {
+                    const options = {
+                        method,
+                        headers: {'Content-Type': 'application/json'}
+                    };
+
+                    if (body) options.body = JSON.stringify(body);
+
+                    const res = await fetch(url, options);
+
+                    if (!res.ok) {
+                        const errorText = await res.text();
+                        throw new Error(`HTTP ${res.status}: ${errorText || res.statusText}`);
+                    }
+
+                    const data = method === 'DELETE' ? null : await res.json();
+                    showStatus('success', `Respuesta exitosa (${res.status})`, data);
+                } catch (err) {
+                    showStatus('error', err.message);
+                }
+            }
+
+            function renderContent(tab) {
+                const area = document.getElementById('content-area');
+
+                if (tab === 'clientes') {
+                    area.innerHTML = `
                     <div class="bg-white rounded-lg shadow-lg p-6">
                         <h2 class="text-2xl font-bold text-gray-800 mb-6">👥 Gestión de Clientes</h2>
                         
@@ -190,8 +231,8 @@
                         </div>
                     </div>
                 `;
-            } else if (tab === 'camiones') {
-                area.innerHTML = `
+                } else if (tab === 'camiones') {
+                    area.innerHTML = `
                     <div class="bg-white rounded-lg shadow-lg p-6">
                         <h2 class="text-2xl font-bold text-gray-800 mb-6">🚛 Gestión de Camiones</h2>
                         
@@ -234,8 +275,8 @@
                         </div>
                     </div>
                 `;
-            } else if (tab === 'depositos') {
-                area.innerHTML = `
+                } else if (tab === 'depositos') {
+                    area.innerHTML = `
                     <div class="bg-white rounded-lg shadow-lg p-6">
                         <h2 class="text-2xl font-bold text-gray-800 mb-6">🏭 Gestión de Depósitos</h2>
                         
@@ -278,34 +319,34 @@
                         </div>
                     </div>
                 `;
-            } else if (tab === 'estados') {
-                area.innerHTML = createSimplePanel('Estados', '📊', 'estados', [
-                    {id: 'nombre', label: 'Nombre *', type: 'text', required: true},
-                    {id: 'descripcion', label: 'Descripción', type: 'text'}
-                ]);
-            } else if (tab === 'rutas') {
-                area.innerHTML = createSimplePanel('Rutas', '🗺️', 'rutas', [
-                    {id: 'origen', label: 'Origen *', type: 'text', required: true},
-                    {id: 'destino', label: 'Destino *', type: 'text', required: true},
-                    {id: 'distanciaKm', label: 'Distancia (km) *', type: 'number', step: '0.01', required: true},
-                    {id: 'costoBase', label: 'Costo Base *', type: 'number', step: '0.01', required: true}
-                ]);
-            } else if (tab === 'ubicaciones') {
-                area.innerHTML = createSimplePanel('Ubicaciones', '📍', 'ubicaciones', [
-                    {id: 'nombre', label: 'Nombre *', type: 'text', required: true},
-                    {id: 'direccion', label: 'Dirección *', type: 'text', required: true},
-                    {id: 'latitud', label: 'Latitud *', type: 'number', step: 'any', required: true},
-                    {id: 'longitud', label: 'Longitud *', type: 'number', step: 'any', required: true}
-                ]);
-            } else if (tab === 'contenedores') {
-                area.innerHTML = createSimplePanel('Contenedores', '📦', 'contenedores', [
-                    {id: 'idSolicitud', label: 'ID Solicitud *', type: 'number', required: true},
-                    {id: 'tipo', label: 'Tipo *', type: 'text', required: true},
-                    {id: 'volumen', label: 'Volumen *', type: 'text', required: true},
-                    {id: 'peso', label: 'Peso (kg)', type: 'number', step: '0.01'}
-                ]);
-            } else if (tab === 'solicitudes') {
-                area.innerHTML = `
+                } else if (tab === 'estados') {
+                    area.innerHTML = createSimplePanel('Estados', '📊', 'estados', [
+                        {id: 'nombre', label: 'Nombre *', type: 'text', required: true},
+                        {id: 'descripcion', label: 'Descripción', type: 'text'}
+                    ]);
+                } else if (tab === 'rutas') {
+                    area.innerHTML = createSimplePanel('Rutas', '🗺️', 'rutas', [
+                        {id: 'origen', label: 'Origen *', type: 'text', required: true},
+                        {id: 'destino', label: 'Destino *', type: 'text', required: true},
+                        {id: 'distanciaKm', label: 'Distancia (km) *', type: 'number', step: '0.01', required: true},
+                        {id: 'costoBase', label: 'Costo Base *', type: 'number', step: '0.01', required: true}
+                    ]);
+                } else if (tab === 'ubicaciones') {
+                    area.innerHTML = createSimplePanel('Ubicaciones', '📍', 'ubicaciones', [
+                        {id: 'nombre', label: 'Nombre *', type: 'text', required: true},
+                        {id: 'direccion', label: 'Dirección *', type: 'text', required: true},
+                        {id: 'latitud', label: 'Latitud *', type: 'number', step: 'any', required: true},
+                        {id: 'longitud', label: 'Longitud *', type: 'number', step: 'any', required: true}
+                    ]);
+                } else if (tab === 'contenedores') {
+                    area.innerHTML = createSimplePanel('Contenedores', '📦', 'contenedores', [
+                        {id: 'idSolicitud', label: 'ID Solicitud *', type: 'number', required: true},
+                        {id: 'tipo', label: 'Tipo *', type: 'text', required: true},
+                        {id: 'volumen', label: 'Volumen *', type: 'text', required: true},
+                        {id: 'peso', label: 'Peso (kg)', type: 'number', step: '0.01'}
+                    ]);
+                } else if (tab === 'solicitudes') {
+                    area.innerHTML = `
                     <div class="bg-white rounded-lg shadow-lg p-6">
                         <h2 class="text-2xl font-bold text-gray-800 mb-6">📋 Gestión de Solicitudes</h2>
                         
@@ -347,8 +388,8 @@
                         </div>
                     </div>
                 `;
-            } else if (tab === 'tramos') {
-                area.innerHTML = `
+                } else if (tab === 'tramos') {
+                    area.innerHTML = `
                     <div class="bg-white rounded-lg shadow-lg p-6">
                         <h2 class="text-2xl font-bold text-gray-800 mb-6">🛣️ Gestión de Tramos (con OSRM)</h2>
                         
@@ -396,16 +437,16 @@
                         </div>
                     </div>
                 `;
+                }
             }
-        }
 
-        function createSimplePanel(title, icon, endpoint, fields) {
-            const fieldsHTML = fields.map(f => {
-                const attrs = `type="${f.type}" id="${f.id}" placeholder="${f.label}" ${f.required ? 'required' : ''} ${f.step ? `step="${f.step}"` : ''} class="border rounded px-3 py-2"`;
-                return `<input ${attrs}>`;
-            }).join('');
+            function createSimplePanel(title, icon, endpoint, fields) {
+                const fieldsHTML = fields.map(f => {
+                    const attrs = `type="${f.type}" id="${f.id}" placeholder="${f.label}" ${f.required ? 'required' : ''} ${f.step ? `step="${f.step}"` : ''} class="border rounded px-3 py-2"`;
+                    return `<input ${attrs}>`;
+                }).join('');
 
-            return `
+                return `
                 <div class="bg-white rounded-lg shadow-lg p-6">
                     <h2 class="text-2xl font-bold text-gray-800 mb-6">${icon} Gestión de ${title}</h2>
                     
@@ -438,130 +479,155 @@
                     </div>
                 </div>
             `;
-        }
-
-        // Funciones de creación específicas
-        function crearCliente() {
-            const data = {
-                nombre: document.getElementById('nombre').value,
-                apellido: document.getElementById('apellido').value,
-                dni: parseInt(document.getElementById('dni').value),
-                telefono: document.getElementById('telefono').value || null,
-                email: document.getElementById('email').value || null
-            };
-            makeRequest('POST', `${MS_CLIENTES}/api/v0.1/clientes`, data);
-        }
-
-        function buscarCliente() {
-            const id = document.getElementById('clienteId').value;
-            if (id) makeRequest('GET', `${MS_CLIENTES}/api/v0.1/clientes/${id}`);
-        }
-
-        function eliminarCliente() {
-            const id = document.getElementById('clienteId').value;
-            if (id && confirm('¿Eliminar este cliente?')) {
-                makeRequest('DELETE', `${MS_CLIENTES}/api/v0.1/clientes/${id}`);
             }
-        }
 
-        function crearCamion() {
-            const data = {
-                patente: document.getElementById('patente').value,
-                nombreTransportista: document.getElementById('nombreTransportista').value,
-                telefono: document.getElementById('telefono').value || null,
-                capacidadPeso: parseFloat(document.getElementById('capacidadPeso').value),
-                capacidadVolumen: parseFloat(document.getElementById('capacidadVolumen').value),
-                disponible: document.getElementById('disponible').checked,
-                costoBaseKm: parseFloat(document.getElementById('costoBaseKm').value),
-                consumoCombustible: parseFloat(document.getElementById('consumoCombustible').value)
-            };
-            makeRequest('POST', `${MS_LOGISTICA}/api/v0.1/camiones`, data);
-        }
-
-        function buscarCamion() {
-            const patente = document.getElementById('camionPatente').value;
-            if (patente) makeRequest('GET', `${MS_LOGISTICA}/api/v0.1/camiones/${patente}`);
-        }
-
-        function eliminarCamion() {
-            const patente = document.getElementById('camionPatente').value;
-            if (patente && confirm('¿Eliminar este camión?')) {
-                makeRequest('DELETE', `${MS_LOGISTICA}/api/v0.1/camiones/${patente}`);
+            // Funciones de creación específicas
+            function crearCliente() {
+                const data = {
+                    nombre: document.getElementById('nombre').value,
+                    apellido: document.getElementById('apellido').value,
+                    dni: parseInt(document.getElementById('dni').value),
+                    telefono: document.getElementById('telefono').value || null,
+                    email: document.getElementById('email').value || null
+                };
+                makeRequest('POST', `${MS_CLIENTES}/api/v0.1/clientes`, data);
             }
-        }
 
-        function crearDeposito() {
-            const data = {
-                nombre: document.getElementById('nombre').value,
-                direccion: document.getElementById('direccion').value,
-                latitud: parseFloat(document.getElementById('latitud').value),
-                longitud: parseFloat(document.getElementById('longitud').value)
-            };
-            makeRequest('POST', `${MS_LOGISTICA}/api/v0.1/depositos`, data);
-        }
+            function buscarCliente() {
+                const id = document.getElementById('clienteId').value;
+                if (id) makeRequest('GET', `${MS_CLIENTES}/api/v0.1/clientes/${id}`);
+            }
 
-        function crearSolicitud() {
-            const data = {
-                idCliente: parseInt(document.getElementById('idCliente').value),
-                idEstado: parseInt(document.getElementById('idEstado').value)
-            };
-            
-            const idRuta = document.getElementById('idRuta').value;
-            if (idRuta) data.idRuta = parseInt(idRuta);
-            
-            const descripcion = document.getElementById('descripcion').value;
-            if (descripcion) data.descripcion = descripcion;
-            
-            makeRequest('POST', `${MS_LOGISTICA}/api/v0.1/solicitudes`, data);
-        }
-
-        function crearTramo() {
-            const data = {
-                idRuta: parseInt(document.getElementById('idRuta').value),
-                tipoTramo: document.getElementById('tipoTramo').value,
-                idOrigen: parseInt(document.getElementById('idOrigen').value),
-                idDestino: parseInt(document.getElementById('idDestino').value),
-                estadoId: parseInt(document.getElementById('estadoId').value)
-            };
-            
-            const dominio = document.getElementById('dominioCamion').value;
-            if (dominio) data.dominioCamion = dominio;
-            
-            makeRequest('POST', `${MS_LOGISTICA}/api/v0.1/tramos`, data);
-        }
-
-        function crearGenerico(endpoint) {
-            const form = event.target;
-            const data = {};
-            const inputs = form.querySelectorAll('input, select');
-            
-            inputs.forEach(input => {
-                if (input.id && input.value) {
-                    if (input.type === 'number') {
-                        data[input.id] = parseFloat(input.value);
-                    } else {
-                        data[input.id] = input.value;
-                    }
+            function eliminarCliente() {
+                const id = document.getElementById('clienteId').value;
+                if (id && confirm('¿Eliminar este cliente?')) {
+                    makeRequest('DELETE', `${MS_CLIENTES}/api/v0.1/clientes/${id}`);
                 }
-            });
-            
-            makeRequest('POST', `${MS_LOGISTICA}/api/v0.1/${endpoint}`, data);
-        }
-
-        function buscarEntidad(endpoint, inputId) {
-            const id = document.getElementById(inputId).value;
-            if (id) makeRequest('GET', `${MS_LOGISTICA}/api/v0.1/${endpoint}/${id}`);
-        }
-
-        function eliminarEntidad(endpoint, inputId) {
-            const id = document.getElementById(inputId).value;
-            if (id && confirm('¿Eliminar este registro?')) {
-                makeRequest('DELETE', `${MS_LOGISTICA}/api/v0.1/${endpoint}/${id}`);
             }
-        }
 
-        // Renderizar contenido inicial
-        renderContent('clientes');
+            function crearCamion() {
+                const data = {
+                    patente: document.getElementById('patente').value,
+                    nombreTransportista: document.getElementById('nombreTransportista').value,
+                    telefono: document.getElementById('telefono').value || null,
+                    capacidadPeso: parseFloat(document.getElementById('capacidadPeso').value),
+                    capacidadVolumen: parseFloat(document.getElementById('capacidadVolumen').value),
+                    disponible: document.getElementById('disponible').checked,
+                    costoBaseKm: parseFloat(document.getElementById('costoBaseKm').value),
+                    consumoCombustible: parseFloat(document.getElementById('consumoCombustible').value)
+                };
+                makeRequest('POST', `${MS_LOGISTICA}/api/v0.1/camiones`, data);
+            }
+
+            function buscarCamion() {
+                const patente = document.getElementById('camionPatente').value;
+                if (patente) makeRequest('GET', `${MS_LOGISTICA}/api/v0.1/camiones/${patente}`);
+            }
+
+            function eliminarCamion() {
+                const patente = document.getElementById('camionPatente').value;
+                if (patente && confirm('¿Eliminar este camión?')) {
+                    makeRequest('DELETE', `${MS_LOGISTICA}/api/v0.1/camiones/${patente}`);
+                }
+            }
+
+            function crearDeposito() {
+                const data = {
+                    nombre: document.getElementById('nombre').value,
+                    direccion: document.getElementById('direccion').value,
+                    latitud: parseFloat(document.getElementById('latitud').value),
+                    longitud: parseFloat(document.getElementById('longitud').value)
+                };
+                makeRequest('POST', `${MS_LOGISTICA}/api/v0.1/depositos`, data);
+            }
+
+            function crearSolicitud() {
+                const data = {
+                    idCliente: parseInt(document.getElementById('idCliente').value),
+                    idEstado: parseInt(document.getElementById('idEstado').value)
+                };
+
+                const idRuta = document.getElementById('idRuta').value;
+                if (idRuta) data.idRuta = parseInt(idRuta);
+
+                const descripcion = document.getElementById('descripcion').value;
+                if (descripcion) data.descripcion = descripcion;
+
+                makeRequest('POST', `${MS_LOGISTICA}/api/v0.1/solicitudes`, data);
+            }
+
+            function crearTramo() {
+                const data = {
+                    idRuta: parseInt(document.getElementById('idRuta').value),
+                    tipoTramo: document.getElementById('tipoTramo').value,
+                    idOrigen: parseInt(document.getElementById('idOrigen').value),
+                    idDestino: parseInt(document.getElementById('idDestino').value),
+                    estadoId: parseInt(document.getElementById('estadoId').value)
+                };
+
+                const dominio = document.getElementById('dominioCamion').value;
+                if (dominio) data.dominioCamion = dominio;
+
+                makeRequest('POST', `${MS_LOGISTICA}/api/v0.1/tramos`, data);
+            }
+
+            function crearGenerico(endpoint) {
+                const form = event.target;
+                const data = {};
+                const inputs = form.querySelectorAll('input, select');
+
+                inputs.forEach(input => {
+                    if (input.id && input.value) {
+                        if (input.type === 'number') {
+                            data[input.id] = parseFloat(input.value);
+                        } else {
+                            data[input.id] = input.value;
+                        }
+                    }
+                });
+
+                makeRequest('POST', `${MS_LOGISTICA}/api/v0.1/${endpoint}`, data);
+            }
+
+            function buscarEntidad(endpoint, inputId) {
+                const id = document.getElementById(inputId).value;
+                if (id) makeRequest('GET', `${MS_LOGISTICA}/api/v0.1/${endpoint}/${id}`);
+            }
+
+            function eliminarEntidad(endpoint, inputId) {
+                const id = document.getElementById(inputId).value;
+                if (id && confirm('¿Eliminar este registro?')) {
+                    makeRequest('DELETE', `${MS_LOGISTICA}/api/v0.1/${endpoint}/${id}`);
+                }
+            }
+
+            function consultarRutasTentativas() {
+                const id = document.getElementById('solicitudIdTentativa').value;
+                if (id) {
+                    makeRequest('GET', `${MS_LOGISTICA}/api/v0.1/solicitudes/${id}/rutas-tentativas`);
+                }
+            }
+
+            function asignarRutaDefinitiva() {
+                const id = document.getElementById('solicitudIdAsignar').value;
+                const idsInput = document.getElementById('idsDepositos').value;
+
+                let idsDepositos = [];
+                if (idsInput) {
+                    idsDepositos = idsInput.split(',').map(s => parseInt(s.trim())).filter(n => !isNaN(n));
+                }
+
+                // Si idsDepositos está vacío, se envía null o [] para ruta directa
+                const body = idsDepositos.length > 0 ? idsDepositos : null;
+
+                if (id) {
+                    makeRequest('PATCH', `${MS_LOGISTICA}/api/v0.1/solicitudes/${id}/asignar-ruta`, body);
+                }
+            }
+
+            // Renderizar contenido inicial
+            renderContent('clientes');
+        }
     </script>
 </body>
 </html>

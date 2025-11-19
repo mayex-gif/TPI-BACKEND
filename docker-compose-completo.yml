@@ -1,0 +1,207 @@
+services:
+  # ============================
+  # MySQL - MS CLIENTES
+  # ============================
+  mysql-clientes:
+    image: mysql:8.0
+    container_name: mysql-clientes
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: bd_clientes
+      MYSQL_USER: user
+      MYSQL_PASSWORD: userpass
+    volumes:
+      - clientes_data:/var/lib/mysql
+      - ./ms-clientes/src/main/resources/bd-clientes.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "3306:3306"
+    networks:
+      - microservices-network
+
+  # ============================
+  # MS CLIENTES
+  # ============================
+  ms-clientes:
+    build: ./ms-clientes
+    container_name: ms-clientes
+    restart: unless-stopped
+    depends_on:
+      - mysql-clientes
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql-clientes:3306/bd_clientes
+      SPRING_DATASOURCE_USERNAME: user
+      SPRING_DATASOURCE_PASSWORD: userpass
+      SERVER_PORT: 8081
+    ports:
+      - "8081:8081"
+    networks:
+      - microservices-network
+
+  # ============================
+  # MySQL - MS LOGISTICA
+  # ============================
+  mysql-logistica:
+    image: mysql:8.0
+    container_name: mysql-logistica
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: bd_logistica
+      MYSQL_USER: user
+      MYSQL_PASSWORD: userpass
+    volumes:
+      - logisticas_data:/var/lib/mysql
+      - ./ms-logistica/src/main/resources/bd-logistica.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "3307:3306"
+    networks:
+      - microservices-network
+
+  # ============================
+  # MS LOGISTICA
+  # ============================
+  ms-logistica:
+    build: ./ms-logistica
+    container_name: ms-logistica
+    restart: unless-stopped
+    depends_on:
+      - mysql-logistica
+      - ms-clientes
+      - osrm
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql-logistica:3306/bd_logistica
+      SPRING_DATASOURCE_USERNAME: user
+      SPRING_DATASOURCE_PASSWORD: userpass
+      SERVER_PORT: 8082
+      MS_CLIENTES_URL: http://ms-clientes:8081/api/v0.1
+      OSRM_BASE_URL: http://osrm:5000
+    ports:
+      - "8082:8082"
+    networks:
+      - microservices-network
+
+  # ============================
+  # MySQL - MS TARIFAS
+  # ============================
+  mysql-tarifas:
+    image: mysql:8.0
+    container_name: mysql-tarifas
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: bd_tarifas
+      MYSQL_USER: user
+      MYSQL_PASSWORD: userpass
+    volumes:
+      - tarifas_data:/var/lib/mysql
+      - ./ms-tarifas/src/main/resources/bd-tarifas.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "3308:3306"
+    networks:
+      - microservices-network
+
+  # ============================
+  # MS TARIFAS
+  # ============================
+  ms-tarifas:
+    build: ./ms-tarifas
+    container_name: ms-tarifas
+    restart: unless-stopped
+    depends_on:
+      - mysql-tarifas
+      - ms-logistica
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql-tarifas:3306/bd_tarifas
+      SPRING_DATASOURCE_USERNAME: user
+      SPRING_DATASOURCE_PASSWORD: userpass
+      SERVER_PORT: 8083
+      MS_LOGISTICA_URL: http://ms-logistica:8082/api/v0.1
+    ports:
+      - "8083:8083"
+    networks:
+      - microservices-network
+
+  # ============================
+  # OSRM (Servicio de Ruteo)
+  # ============================
+  osrm:
+    image: osrm/osrm-backend:latest
+    platform: linux/amd64
+    container_name: osrm
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./osrm-data:/data
+    command: >
+      osrm-routed /data/argentina-251112.osrm
+    networks:
+      - microservices-network
+
+  # ============================
+  # 🔑 KEYCLOAK (Autenticación)
+  # ============================
+  keycloak:
+    image: quay.io/keycloak/keycloak:23.0
+    container_name: keycloak
+    restart: unless-stopped
+    environment:
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+      KC_DB: dev-file
+      KC_HTTP_PORT: 8080
+      KC_HOSTNAME_STRICT: false
+      KC_HOSTNAME_STRICT_HTTPS: false
+      KC_HTTP_ENABLED: true
+    ports:
+      - "8180:8080"
+    volumes:
+      - keycloak_data:/opt/keycloak/data
+    command: start-dev
+    networks:
+      - microservices-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health/ready"]
+      interval: 10s
+      timeout: 10s
+      retries: 20
+      start_period: 15s
+
+  # ============================
+  # 🛡️ API GATEWAY
+  # ============================
+  apigateway:
+    build: ./apigateway
+    container_name: apigateway
+    restart: unless-stopped
+    depends_on:
+      keycloak:
+        condition: service_healthy
+      ms-clientes:
+        condition: service_started
+      ms-logistica:
+        condition: service_started
+      ms-tarifas:
+        condition: service_started
+    environment:
+      SERVER_PORT: 8080
+      KEYCLOAK_ISSUER_URI: http://keycloak:8080/realms/logistica-realm
+      KEYCLOAK_JWK_SET_URI: http://keycloak:8080/realms/logistica-realm/protocol/openid-connect/certs
+      MS_CLIENTES_URL: http://ms-clientes:8081
+      MS_LOGISTICA_URL: http://ms-logistica:8082
+      MS_TARIFAS_URL: http://ms-tarifas:8083
+    ports:
+      - "8080:8080"
+    networks:
+      - microservices-network
+
+volumes:
+  clientes_data:
+  logisticas_data:
+  tarifas_data:
+  keycloak_data:
+
+networks:
+  microservices-network:
+    driver: bridge

@@ -1,0 +1,95 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: apigateway
+
+  # ========================================
+  # CONFIGURACIÓN DE KEYCLOAK
+  # ========================================
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          # URL del issuer (Keycloak realm)
+          issuer-uri: ${KEYCLOAK_ISSUER_URI:http://localhost:8180/realms/logistica-realm}
+          # URL del JWK Set (endpoint de Keycloak)
+          jwk-set-uri: ${KEYCLOAK_JWK_SET_URI:http://keycloak:8080/realms/logistica-realm/protocol/openid-connect/certs}
+
+  # ========================================
+  # CONFIGURACIÓN DE CLOUD GATEWAY
+  # ========================================
+  cloud:
+    gateway:
+      default-filters:
+        # Token Relay: Propaga el token JWT a los microservicios
+        - TokenRelay=
+        # Elimina prefijos redundantes de las rutas
+        - RemoveRequestHeader=Cookie
+
+      routes:
+        # ==========================================
+        # RUTA: MS-CLIENTES
+        # ==========================================
+        - id: ms-clientes
+          uri: ${MS_CLIENTES_URL:http://localhost:8081}
+          predicates:
+            - Path=/api/v0.1/clientes/**
+          filters:
+            - StripPrefix=0
+
+        # ==========================================
+        # RUTA: MS-LOGISTICA
+        # ==========================================
+        - id: ms-logistica
+          uri: ${MS_LOGISTICA_URL:http://localhost:8082}
+          predicates:
+            - Path=/api/v0.1/solicitudes/**,/api/v0.1/contenedores/**,/api/v0.1/tramos/**,/api/v0.1/rutas/**,/api/v0.1/camiones/**,/api/v0.1/depositos/**,/api/v0.1/estados/**
+          filters:
+            - StripPrefix=0
+
+        # ==========================================
+        # RUTA: MS-TARIFAS
+        # ==========================================
+        - id: ms-tarifas
+          uri: ${MS_TARIFAS_URL:http://localhost:8083}
+          predicates:
+            - Path=/api/v0.1/tarifas/**
+          filters:
+            - StripPrefix=0
+
+      # CORS Configuration
+      globalcors:
+        cors-configurations:
+          '[/**]':
+            allowedOrigins: "*"
+            allowedMethods:
+              - GET
+              - POST
+              - PUT
+              - PATCH
+              - DELETE
+              - OPTIONS
+            allowedHeaders: "*"
+            allowCredentials: false
+
+# ========================================
+# CONFIGURACIÓN DE ACTUATOR
+# ========================================
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,gateway
+  endpoint:
+    health:
+      show-details: always
+
+# ========================================
+# LOGGING
+# ========================================
+logging:
+  level:
+    org.springframework.cloud.gateway: DEBUG
+    org.springframework.security: DEBUG
