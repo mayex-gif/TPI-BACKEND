@@ -28,35 +28,31 @@
 			<groupId>org.springframework.cloud</groupId>
 			<artifactId>spring-cloud-starter-gateway</artifactId>
 		</dependency>
-
 		<!-- Spring Security + OAuth2 Resource Server (Para validar tokens JWT) -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-oauth2-resource-server</artifactId>
 		</dependency>
-
 		<!-- Actuator para health checks -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-actuator</artifactId>
 		</dependency>
-
 		<!-- Lombok (opcional) -->
 		<dependency>
 			<groupId>org.projectlombok</groupId>
 			<artifactId>lombok</artifactId>
 			<optional>true</optional>
 		</dependency>
-
-		<!-- ================================== -->
-		<!-- DEPENDENCIAS DE PRUEBA CORREGIDAS -->
-		<!-- ================================== -->
-
 		<!-- Incluye Junit Jupiter, Mockito y Spring Test automáticamente -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-test</artifactId>
 			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-oauth2-client</artifactId>
 		</dependency>
 
 		<!-- ESENCIAL para pruebas en un proyecto Reactivo (WebFlux) como el Gateway -->

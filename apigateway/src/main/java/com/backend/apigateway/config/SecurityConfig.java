@@ -56,6 +56,7 @@ public class SecurityConfig {
                         // ==========================================
                         // ENDPOINTS POR ROL: ADMINISTRADOR
                         // ==========================================
+                        .pathMatchers("GET", "/api/v0.1/camiones").hasRole("ADMINISTRADOR")
                         .pathMatchers("POST", "/api/v0.1/camiones").hasRole("ADMINISTRADOR")
                         .pathMatchers("PUT", "/api/v0.1/camiones/**").hasRole("ADMINISTRADOR")
                         .pathMatchers("DELETE", "/api/v0.1/camiones/**").hasRole("ADMINISTRADOR")

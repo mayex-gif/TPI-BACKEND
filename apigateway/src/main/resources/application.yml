@@ -6,16 +6,17 @@ spring:
     name: apigateway
 
   # ========================================
-  # CONFIGURACIÓN DE KEYCLOAK
+  # CONFIGURACIÓN DE KEYCLOAK (CORRECCIÓN CRÍTICA)
+  # Se usa localhost:8180 como fallback para ejecución local.
   # ========================================
   security:
     oauth2:
       resourceserver:
         jwt:
-          # URL del issuer (Keycloak realm)
+          # AHORA USA localhost:8180 EN CASO DE NO TENER LA VARIABLE DE ENTORNO
           issuer-uri: ${KEYCLOAK_ISSUER_URI:http://localhost:8180/realms/logistica-realm}
-          # URL del JWK Set (endpoint de Keycloak)
-          jwk-set-uri: ${KEYCLOAK_JWK_SET_URI:http://keycloak:8080/realms/logistica-realm/protocol/openid-connect/certs}
+          # AHORA USA localhost:8180 EN CASO DE NO TENER LA VARIABLE DE ENTORNO
+          jwk-set-uri: ${KEYCLOAK_JWK_SET_URI:http://localhost:8180/realms/logistica-realm/protocol/openid-connect/certs}
 
   # ========================================
   # CONFIGURACIÓN DE CLOUD GATEWAY

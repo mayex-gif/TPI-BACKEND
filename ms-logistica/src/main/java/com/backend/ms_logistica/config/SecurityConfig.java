@@ -1,4 +1,4 @@
-package com.backend.ms_clientes.config;
+package com.backend.ms_logistica.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

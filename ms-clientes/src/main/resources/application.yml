@@ -1,0 +1,15 @@
+server:
+  port: 8081 # Puerto del microservicio
+
+spring:
+  application:
+    name: ms-clientes
+
+  # ========================================
+  # CONFIGURACIÓN DE SEGURIDAD (KEYCLOAK)
+  # ========================================
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${KEYCLOAK_ISSUER_URI:http://localhost:8180/realms/logistica-realm}

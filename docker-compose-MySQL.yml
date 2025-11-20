@@ -1,7 +1,12 @@
+  FROM quay.io/keycloak/keycloak:23.0
+  RUN microdnf install -y curl && microdnf clean all
+
 services:
-  # ============================
+  # ==============================================================
+  # INFRAESTRUCTURA DE DATOS (Mantenida)
+  # ==============================================================
+  
   # MySQL - MS CLIENTES
-  # ============================
   mysql-clientes:
     image: mysql:8.0
     container_name: mysql-clientes
@@ -11,15 +16,15 @@ services:
       MYSQL_DATABASE: bd_clientes
       MYSQL_USER: user
       MYSQL_PASSWORD: userpass
-    ports:
-      - "3306:3306"
     volumes:
       - clientes_data:/var/lib/mysql
-      - ./ms-clientes/src/main/resources/bd-clientes.sql:/docker-entrypoint-initdb.d/bd-clientes.sql
+      - ./ms-clientes/src/main/resources/bd-clientes.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "3306:3306"
+    networks:
+      - microservices-network
 
-  # ============================
   # MySQL - MS LOGISTICA
-  # ============================
   mysql-logistica:
     image: mysql:8.0
     container_name: mysql-logistica
@@ -29,15 +34,15 @@ services:
       MYSQL_DATABASE: bd_logistica
       MYSQL_USER: user
       MYSQL_PASSWORD: userpass
-    ports:
-      - "3307:3306"
     volumes:
       - logisticas_data:/var/lib/mysql
-      - ./ms-logistica/src/main/resources/bd-logistica.sql:/docker-entrypoint-initdb.d/bd-logistica.sql
+      - ./ms-logistica/src/main/resources/bd-logistica.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "3307:3306" # Expuesto para que ms-logistica local pueda acceder
+    networks:
+      - microservices-network
 
-  # ============================
   # MySQL - MS TARIFAS
-  # ============================
   mysql-tarifas:
     image: mysql:8.0
     container_name: mysql-tarifas
@@ -47,27 +52,69 @@ services:
       MYSQL_DATABASE: bd_tarifas
       MYSQL_USER: user
       MYSQL_PASSWORD: userpass
-    ports:
-      - "3308:3306"
     volumes:
       - tarifas_data:/var/lib/mysql
-      - ./ms-tarifas/src/main/resources/bd-tarifas.sql:/docker-entrypoint-initdb.d/bd-tarifas.sql
+      - ./ms-tarifas/src/main/resources/bd-tarifas.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "3308:3306" # Expuesto para que ms-tarifas local pueda acceder
+    networks:
+      - microservices-network
 
-  # ============================
-  # OSRM
-  # ============================
+  # ==============================================================
+  # SERVICIOS EXTERNOS (Mantenidos)
+  # ==============================================================
+
+  # OSRM (Servicio de Ruteo)
   osrm:
     image: osrm/osrm-backend:latest
     platform: linux/amd64
     container_name: osrm
+    restart: unless-stopped
     ports:
-      - "5000:5000"
+      - "5000:5000" # Expuesto para que los MS locales puedan acceder
     volumes:
       - ./osrm-data:/data
     command: >
       osrm-routed /data/argentina-251112.osrm
+    networks:
+      - microservices-network
 
+  # 🔑 KEYCLOAK (Autenticación)
+  keycloak:
+    image: quay.io/keycloak/keycloak:23.0
+    container_name: keycloak
+    restart: unless-stopped
+    environment:
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+      KC_DB: dev-file
+      KC_HTTP_PORT: 8080
+      KC_HOSTNAME_STRICT: false
+      KC_HOSTNAME_STRICT_HTTPS: false
+      KC_HTTP_ENABLED: true
+    ports:
+      - "8180:8080" # Expuesto para que los MS locales puedan usar el issuer-uri
+    volumes:
+      - keycloak_data:/opt/keycloak/data
+    command: start-dev
+    networks:
+      - microservices-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health/ready"]
+      interval: 10s
+      timeout: 10s
+      retries: 100
+      start_period: 30s
+
+# ==============================================================
+# VOLÚMENES Y REDES (Mantenidos)
+# ==============================================================
 volumes:
   clientes_data:
   logisticas_data:
   tarifas_data:
+  keycloak_data:
+
+networks:
+  microservices-network:
+    driver: bridge

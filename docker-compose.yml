@@ -1,6 +1,11 @@
 services:
+  # ============================
+  # MySQL - MS CLIENTES
+  # ============================
   mysql-clientes:
     image: mysql:8.0
+    container_name: mysql-clientes
+    restart: unless-stopped
     environment:
       MYSQL_ROOT_PASSWORD: root
       MYSQL_DATABASE: bd_clientes
@@ -9,11 +14,28 @@ services:
     volumes:
       - clientes_data:/var/lib/mysql
       - ./ms-clientes/src/main/resources/bd-clientes.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "3306:3306"
+    networks:
+      - microservices-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u$$MYSQL_USER", "-p$$MYSQL_PASSWORD"]
+      interval: 5s
+      timeout: 10s
+      retries: 5
 
+  # ============================
+  # MS CLIENTES
+  # ============================
   ms-clientes:
     build: ./ms-clientes
+    container_name: ms-clientes
+    restart: unless-stopped
     depends_on:
-      - mysql-clientes
+      mysql-clientes:
+        condition: service_started
+      keycloak:
+        condition: service_started
     environment:
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql-clientes:3306/bd_clientes
       SPRING_DATASOURCE_USERNAME: user
@@ -21,9 +43,22 @@ services:
       SERVER_PORT: 8081
     ports:
       - "8081:8081"
+    networks:
+      - microservices-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8081/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 40s
 
+  # ============================
+  # MySQL - MS LOGISTICA
+  # ============================
   mysql-logistica:
     image: mysql:8.0
+    container_name: mysql-logistica
+    restart: unless-stopped
     environment:
       MYSQL_ROOT_PASSWORD: root
       MYSQL_DATABASE: bd_logistica
@@ -32,13 +67,32 @@ services:
     volumes:
       - logisticas_data:/var/lib/mysql
       - ./ms-logistica/src/main/resources/bd-logistica.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "3307:3306"
+    networks:
+      - microservices-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u$$MYSQL_USER", "-p$$MYSQL_PASSWORD"]
+      interval: 5s
+      timeout: 10s
+      retries: 5
 
+  # ============================
+  # MS LOGISTICA
+  # ============================
   ms-logistica:
     build: ./ms-logistica
+    container_name: ms-logistica
+    restart: unless-stopped
     depends_on:
-      - mysql-logistica
-      - ms-clientes
-      - osrm
+      mysql-logistica:
+        condition: service_started
+      ms-clientes:
+        condition: service_started
+      osrm:
+        condition: service_started
+      keycloak:
+        condition: service_started
     environment:
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql-logistica:3306/bd_logistica
       SPRING_DATASOURCE_USERNAME: user
@@ -48,9 +102,22 @@ services:
       OSRM_BASE_URL: http://osrm:5000
     ports:
       - "8082:8082"
+    networks:
+      - microservices-network
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8082/actuator/health" ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 40s
 
+  # ============================
+  # MySQL - MS TARIFAS
+  # ============================
   mysql-tarifas:
     image: mysql:8.0
+    container_name: mysql-tarifas
+    restart: unless-stopped
     environment:
       MYSQL_ROOT_PASSWORD: root
       MYSQL_DATABASE: bd_tarifas
@@ -59,12 +126,30 @@ services:
     volumes:
       - tarifas_data:/var/lib/mysql
       - ./ms-tarifas/src/main/resources/bd-tarifas.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "3308:3306"
+    networks:
+      - microservices-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u$$MYSQL_USER", "-p$$MYSQL_PASSWORD"]
+      interval: 5s
+      timeout: 10s
+      retries: 5
 
+  # ============================
+  # MS TARIFAS
+  # ============================
   ms-tarifas:
     build: ./ms-tarifas
+    container_name: ms-tarifas
+    restart: unless-stopped
     depends_on:
-      - mysql-tarifas
-      - ms-logistica
+      mysql-tarifas:
+        condition: service_started
+      ms-logistica:
+        condition: service_started
+      keycloak:
+        condition: service_started
     environment:
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql-tarifas:3306/bd_tarifas
       SPRING_DATASOURCE_USERNAME: user
@@ -73,18 +158,106 @@ services:
       MS_LOGISTICA_URL: http://ms-logistica:8082/api/v0.1
     ports:
       - "8083:8083"
+    networks:
+      - microservices-network
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8083/actuator/health" ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 40s
 
+  # ============================
+  # OSRM (Servicio de Ruteo)
+  # ============================
   osrm:
     image: osrm/osrm-backend:latest
     platform: linux/amd64
+    container_name: osrm
+    restart: unless-stopped
     ports:
       - "5000:5000"
     volumes:
       - ./osrm-data:/data
     command: >
       osrm-routed /data/argentina-251112.osrm
+    networks:
+      - microservices-network
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:5000/health" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # ============================
+  # 🔑 KEYCLOAK (Autenticación)
+  # ============================
+  keycloak:
+    image: quay.io/keycloak/keycloak:23.0
+    container_name: keycloak
+    restart: unless-stopped
+    environment:
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+      KC_DB: dev-file
+      KC_HTTP_PORT: 8080
+      KC_HOSTNAME_STRICT: false
+      KC_HOSTNAME_STRICT_HTTPS: false
+      KC_HTTP_ENABLED: true
+      # Correcto: Asegura que el 'iss' del token sea localhost:8180
+      KC_HOSTNAME_URL: http://localhost:8180
+    ports:
+      - "8180:8080"
+    volumes:
+      - keycloak_data:/opt/keycloak/data
+    command: start-dev
+    networks:
+      - microservices-network
+    healthcheck:
+      # 🚀 FIX FINAL: Usamos /health/live que es más rápido y CMD con wget robusto.
+      # Esto verifica que el servidor web interno está respondiendo.
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://localhost:8180/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 15 # Más reintentos para dar margen, si fuera necesario
+      start_period: 90s # Mucho tiempo de inicio
+
+  # ============================
+  # 🛡️ API GATEWAY
+  # ============================
+  apigateway:
+    build: ./apigateway
+    container_name: apigateway
+    restart: unless-stopped
+    depends_on:
+      keycloak:
+        condition: service_started
+      ms-clientes:
+        condition: service_started
+      ms-logistica:
+        condition: service_started
+      ms-tarifas:
+        condition: service_started
+    environment:
+      SERVER_PORT: 8080
+      # Correcto: Apuntamos a la URL pública.
+      KEYCLOAK_ISSUER_URI: http://localhost:8180/realms/logistica-realm
+      KEYCLOAK_JWK_SET_URI: http://localhost:8180/realms/logistica-realm/protocol/openid-connect/certs
+      MS_CLIENTES_URL: http://ms-clientes:8081
+      MS_LOGISTICA_URL: http://ms-logistica:8082
+      MS_TARIFAS_URL: http://ms-tarifas:8083
+    ports:
+      - "8080:8080"
+    networks:
+      - microservices-network
 
 volumes:
   clientes_data:
   logisticas_data:
   tarifas_data:
+  keycloak_data:
+
+networks:
+  microservices-network:
+    driver: bridge

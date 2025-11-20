@@ -1,0 +1,142 @@
+{
+  "id": "logistica-realm",
+  "realm": "logistica-realm",
+  "displayName": "Sistema de Logística",
+  "enabled": true,
+  "sslRequired": "none",
+  "registrationAllowed": false,
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "resetPasswordAllowed": true,
+  "editUsernameAllowed": false,
+  "bruteForceProtected": true,
+  "roles": {
+    "realm": [
+      {
+        "name": "CLIENTE",
+        "description": "Usuario cliente que solicita transportes",
+        "composite": false
+      },
+      {
+        "name": "OPERADOR",
+        "description": "Operador que gestiona solicitudes y asignaciones",
+        "composite": false
+      },
+      {
+        "name": "TRANSPORTISTA",
+        "description": "Transportista que ejecuta los traslados",
+        "composite": false
+      },
+      {
+        "name": "ADMINISTRADOR",
+        "description": "Administrador del sistema",
+        "composite": false
+      }
+    ]
+  },
+  "clients": [
+    {
+      "clientId": "logistica-client",
+      "name": "Logistica Client",
+      "description": "Cliente para API Gateway y Microservicios",
+      "enabled": true,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "logistica-secret-123",
+      "redirectUris": [
+        "http://localhost:8080/*",
+        "http://apigateway:8080/*"
+      ],
+      "webOrigins": [
+        "http://localhost:8080",
+        "http://apigateway:8080"
+      ],
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "directAccessGrantsEnabled": true,
+      "serviceAccountsEnabled": true,
+      "authorizationServicesEnabled": false,
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "attributes": {
+        "access.token.lifespan": "300",
+        "client.secret.creation.time": "1700000000"
+      }
+    }
+  ],
+  "users": [
+    {
+      "username": "cliente1",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "Juan",
+      "lastName": "Pérez",
+      "email": "cliente1@test.com",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "password123",
+          "temporary": false
+        }
+      ],
+      "realmRoles": ["CLIENTE"]
+    },
+    {
+      "username": "operador1",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "María",
+      "lastName": "González",
+      "email": "operador1@test.com",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "password123",
+          "temporary": false
+        }
+      ],
+      "realmRoles": ["OPERADOR"]
+    },
+    {
+      "username": "transportista1",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "Carlos",
+      "lastName": "Rodríguez",
+      "email": "transportista1@test.com",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "password123",
+          "temporary": false
+        }
+      ],
+      "realmRoles": ["TRANSPORTISTA"]
+    },
+    {
+      "username": "admin1",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "Admin",
+      "lastName": "Sistema",
+      "email": "admin1@test.com",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "password123",
+          "temporary": false
+        }
+      ],
+      "realmRoles": ["ADMINISTRADOR"]
+    }
+  ],
+  "internationalizationEnabled": false,
+  "supportedLocales": ["es", "en"],
+  "defaultLocale": "es",
+  "authenticationFlows": [],
+  "requiredActions": [],
+  "browserFlow": "browser",
+  "registrationFlow": "registration",
+  "directGrantFlow": "direct grant",
+  "resetCredentialsFlow": "reset credentials",
+  "clientAuthenticationFlow": "clients"
+}

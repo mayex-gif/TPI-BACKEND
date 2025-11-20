@@ -1,6 +1,6 @@
 services:
   # ============================
-  # MySQL - MS CLIENTES
+  # CAPA DE DATOS
   # ============================
   mysql-clientes:
     image: mysql:8.0
@@ -19,28 +19,6 @@ services:
     networks:
       - microservices-network
 
-  # ============================
-  # MS CLIENTES
-  # ============================
-  ms-clientes:
-    build: ./ms-clientes
-    container_name: ms-clientes
-    restart: unless-stopped
-    depends_on:
-      - mysql-clientes
-    environment:
-      SPRING_DATASOURCE_URL: jdbc:mysql://mysql-clientes:3306/bd_clientes
-      SPRING_DATASOURCE_USERNAME: user
-      SPRING_DATASOURCE_PASSWORD: userpass
-      SERVER_PORT: 8081
-    ports:
-      - "8081:8081"
-    networks:
-      - microservices-network
-
-  # ============================
-  # MySQL - MS LOGISTICA
-  # ============================
   mysql-logistica:
     image: mysql:8.0
     container_name: mysql-logistica
@@ -58,32 +36,6 @@ services:
     networks:
       - microservices-network
 
-  # ============================
-  # MS LOGISTICA
-  # ============================
-  ms-logistica:
-    build: ./ms-logistica
-    container_name: ms-logistica
-    restart: unless-stopped
-    depends_on:
-      - mysql-logistica
-      - ms-clientes
-      - osrm
-    environment:
-      SPRING_DATASOURCE_URL: jdbc:mysql://mysql-logistica:3306/bd_logistica
-      SPRING_DATASOURCE_USERNAME: user
-      SPRING_DATASOURCE_PASSWORD: userpass
-      SERVER_PORT: 8082
-      MS_CLIENTES_URL: http://ms-clientes:8081/api/v0.1
-      OSRM_BASE_URL: http://osrm:5000
-    ports:
-      - "8082:8082"
-    networks:
-      - microservices-network
-
-  # ============================
-  # MySQL - MS TARIFAS
-  # ============================
   mysql-tarifas:
     image: mysql:8.0
     container_name: mysql-tarifas
@@ -102,8 +54,42 @@ services:
       - microservices-network
 
   # ============================
-  # MS TARIFAS
+  # MICROSERVICIOS (Ocultos)
   # ============================
+  ms-clientes:
+    build: ./ms-clientes
+    container_name: ms-clientes
+    restart: unless-stopped
+    depends_on:
+      - mysql-clientes
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql-clientes:3306/bd_clientes
+      SPRING_DATASOURCE_USERNAME: user
+      SPRING_DATASOURCE_PASSWORD: userpass
+      SERVER_PORT: 8081
+      KEYCLOAK_ISSUER_URI: http://keycloak:8080/realms/logistica-realm
+    networks:
+      - microservices-network
+
+  ms-logistica:
+    build: ./ms-logistica
+    container_name: ms-logistica
+    restart: unless-stopped
+    depends_on:
+      - mysql-logistica
+      - ms-clientes
+      - osrm
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql-logistica:3306/bd_logistica
+      SPRING_DATASOURCE_USERNAME: user
+      SPRING_DATASOURCE_PASSWORD: userpass
+      SERVER_PORT: 8082
+      MS_CLIENTES_URL: http://ms-clientes:8081/api/v0.1
+      OSRM_BASE_URL: http://osrm:5000
+      KEYCLOAK_ISSUER_URI: http://keycloak:8080/realms/logistica-realm
+    networks:
+      - microservices-network
+
   ms-tarifas:
     build: ./ms-tarifas
     container_name: ms-tarifas
@@ -117,13 +103,12 @@ services:
       SPRING_DATASOURCE_PASSWORD: userpass
       SERVER_PORT: 8083
       MS_LOGISTICA_URL: http://ms-logistica:8082/api/v0.1
-    ports:
-      - "8083:8083"
+      KEYCLOAK_ISSUER_URI: http://keycloak:8080/realms/logistica-realm
     networks:
       - microservices-network
 
   # ============================
-  # OSRM (Servicio de Ruteo)
+  # INFRAESTRUCTURA
   # ============================
   osrm:
     image: osrm/osrm-backend:latest
@@ -139,9 +124,7 @@ services:
     networks:
       - microservices-network
 
-  # ============================
-  # 🔑 KEYCLOAK (Autenticación)
-  # ============================
+  # 🔑 KEYCLOAK (CORREGIDO)
   keycloak:
     image: quay.io/keycloak/keycloak:23.0
     container_name: keycloak
@@ -154,22 +137,26 @@ services:
       KC_HOSTNAME_STRICT: false
       KC_HOSTNAME_STRICT_HTTPS: false
       KC_HTTP_ENABLED: true
+      KC_HOSTNAME_URL: http://keycloak:8080
     ports:
       - "8180:8080"
     volumes:
+      # Mapeo del archivo al directorio de importación estándar
+      - ./keycloak-config/logistica-realm.json:/opt/keycloak/data/import/logistica-realm.json
       - keycloak_data:/opt/keycloak/data
-    command: start-dev
+    # 🚨 CAMBIO IMPORTANTE: Se agregó --import-realm
+    command: start-dev --import-realm
     networks:
       - microservices-network
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/health/ready"]
       interval: 10s
       timeout: 10s
-      retries: 20
-      start_period: 15s
+      retries: 100
+      start_period: 30s
 
   # ============================
-  # 🛡️ API GATEWAY
+  # API GATEWAY
   # ============================
   apigateway:
     build: ./apigateway
@@ -177,7 +164,7 @@ services:
     restart: unless-stopped
     depends_on:
       keycloak:
-        condition: service_healthy
+        condition: service_started
       ms-clientes:
         condition: service_started
       ms-logistica:
