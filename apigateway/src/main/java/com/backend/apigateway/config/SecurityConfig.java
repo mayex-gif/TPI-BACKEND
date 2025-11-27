@@ -38,6 +38,7 @@ public class SecurityConfig {
                         // ENDPOINTS POR ROL: OPERADOR
                         // ==========================================
                         .pathMatchers("GET", "/api/v0.1/solicitudes/**").hasAnyRole("OPERADOR", "ADMINISTRADOR")
+                        .pathMatchers("POST", "/api/v0.1/solicitudes/**").hasAnyRole("OPERADOR", "ADMINISTRADOR")
                         .pathMatchers("PATCH", "/api/v0.1/solicitudes/{id}/asignar-ruta").hasAnyRole("OPERADOR", "ADMINISTRADOR")
                         .pathMatchers("GET", "/api/v0.1/solicitudes/{id}/rutas-tentativas").hasAnyRole("OPERADOR", "ADMINISTRADOR")
                         .pathMatchers("GET", "/api/v0.1/contenedores/**").hasAnyRole("OPERADOR", "ADMINISTRADOR")
@@ -56,18 +57,21 @@ public class SecurityConfig {
                         // ==========================================
                         // ENDPOINTS POR ROL: ADMINISTRADOR
                         // ==========================================
-                        .pathMatchers("GET", "/api/v0.1/camiones").hasRole("ADMINISTRADOR")
-                        .pathMatchers("POST", "/api/v0.1/camiones").hasRole("ADMINISTRADOR")
-                        .pathMatchers("PUT", "/api/v0.1/camiones/**").hasRole("ADMINISTRADOR")
-                        .pathMatchers("DELETE", "/api/v0.1/camiones/**").hasRole("ADMINISTRADOR")
-                        .pathMatchers("POST", "/api/v0.1/depositos").hasRole("ADMINISTRADOR")
-                        .pathMatchers("PUT", "/api/v0.1/depositos/**").hasRole("ADMINISTRADOR")
-                        .pathMatchers("DELETE", "/api/v0.1/depositos/**").hasRole("ADMINISTRADOR")
-                        .pathMatchers("POST", "/api/v0.1/estados").hasRole("ADMINISTRADOR")
-                        .pathMatchers("PUT", "/api/v0.1/estados/**").hasRole("ADMINISTRADOR")
-                        .pathMatchers("DELETE", "/api/v0.1/estados/**").hasRole("ADMINISTRADOR")
-                        .pathMatchers("PATCH", "/api/v0.1/solicitudes/{id}/finalizar").hasRole("ADMINISTRADOR")
+
+                        // Solicitudes
+                        .pathMatchers("/api/v0.1/solicitudes/**").hasRole("ADMINISTRADOR")
+                        // Camiones
+                        .pathMatchers("/api/v0.1/camiones/**").hasRole("ADMINISTRADOR")
+                        // Depósitos
+                        .pathMatchers("/api/v0.1/depositos/**").hasRole("ADMINISTRADOR")
+                        // Estados
+                        .pathMatchers("/api/v0.1/estados/**").hasRole("ADMINISTRADOR")
+                        // Tarifas
                         .pathMatchers("/api/v0.1/tarifas/**").hasRole("ADMINISTRADOR")
+                        // Clientes
+                        .pathMatchers("/api/v0.1/clientes/**").hasRole("ADMINISTRADOR")
+                        // Rutas
+                        .pathMatchers("/api/v0.1/rutas/**").hasRole("ADMINISTRADOR")
 
                         // ==========================================
                         // RESTO DE ENDPOINTS: REQUIEREN AUTENTICACIÓN

@@ -4,6 +4,10 @@ import jakarta.validation.constraints.*;
 
 public class ClienteDTO {
 
+    @NotBlank(message = "El nombre de usuario es obligatorio.")
+    @Size(min = 4, max = 30, message = "El username debe tener entre 4 y 30 caracteres.")
+    private String username;
+
     private Integer idCliente;
 
     @NotBlank(message = "El nombre es obligatorio")
@@ -22,17 +26,28 @@ public class ClienteDTO {
     @Email(message = "Email inválido")
     private String email;
 
+    // --- NUEVO CAMPO: Contraseña para Keycloak ---
+    @NotBlank(message = "La contraseña es obligatoria")
+    @Size(min = 6, message = "La contraseña debe tener al menos 6 caracteres")
+    private String password;
+    // ---------------------------------------------
+
     public ClienteDTO() {}
 
-    public ClienteDTO(String nombre, String apellido, Long dni, String telefono, String email) {
+    public ClienteDTO(String nombre, String apellido, Long dni, String telefono, String email, String password, String username) {
         this.nombre = nombre;
         this.apellido = apellido;
         this.dni = dni;
         this.telefono = telefono;
         this.email = email;
+        this.password = password;
+        this.username = username;
     }
 
     // Getters y setters
+
+    public String getPassword() { return password; }
+    public void setPassword(String password) { this.password = password; }
 
 
     public Integer getIdCliente() {
@@ -56,4 +71,12 @@ public class ClienteDTO {
 
     public String getEmail() { return email; }
     public void setEmail(String email) { this.email = email; }
+
+    public String getUsername() {
+        return username;
+    }
+
+    public void setUsername(String username) {
+        this.username = username;
+    }
 }

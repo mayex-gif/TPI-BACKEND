@@ -14,6 +14,11 @@ public class Cliente {
     @Column(name = "ID_CLIENTE")
     private Integer idCliente;
 
+    // --- NUEVO CAMPO: ID de Keycloak ---
+    @Column(name = "KEYCLOAK_ID", unique = true)
+    private String keycloakId;
+    // ------------------------------------
+
     @Column(name = "NOMBRE")
     private String nombre;
     @Column(name = "APELLIDO")
@@ -44,6 +49,11 @@ public class Cliente {
 
     public Integer getIdCliente() { return idCliente; }
     public void setIdCliente(Integer idCliente) { this.idCliente = idCliente; }
+
+    // --- GETTER Y SETTER PARA KEYCLOAK_ID ---
+    public String getKeycloakId() { return keycloakId; }
+    public void setKeycloakId(String keycloakId) { this.keycloakId = keycloakId; }
+    // ------------------------------------------
 
     public String getNombre() { return nombre; }
     public void setNombre(String nombre) { this.nombre = nombre; }

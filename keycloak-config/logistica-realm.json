@@ -81,7 +81,11 @@
       "realmRoles": ["CLIENTE"]
     },
     {
+<<<<<<< Updated upstream
       "username": "operador1",
+=======
+      "username": "admin",
+>>>>>>> Stashed changes
       "enabled": true,
       "emailVerified": true,
       "firstName": "María",
@@ -126,7 +130,7 @@
           "temporary": false
         }
       ],
-      "realmRoles": ["ADMINISTRADOR"]
+      "realmRoles": ["ADMINISTRADOR", "CLIENTE"]
     }
   ],
   "internationalizationEnabled": false,
