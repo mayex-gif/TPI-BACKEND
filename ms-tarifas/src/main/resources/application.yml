@@ -26,4 +26,4 @@ spring:
           # Si la variable KEYCLOAK_ISSUER_URI NO está definida (ejecución local),
           # usa la URL de Keycloak expuesta en localhost:8180.
           # Si la variable está definida (ejecución en Docker), usa el valor de la variable.
-          issuer-uri: ${KEYCLOAK_ISSUER_URI:http://localhost:8180/realms/logistica-realm}
+          issuer-uri: ${KEYCLOAK_ISSUER_URI} #:http://localhost:8180/realms/logistica-realm}

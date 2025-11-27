@@ -6,4 +6,4 @@ COPY target/ms-tarifas-0.0.1-SNAPSHOT.jar app.jar
 
 EXPOSE 8083
 
-ENTRYPOINT ["java", "-jar", "app.jar"]
+ENTRYPOINT ["sh", "-c", "sleep 30 && java -jar app.jar"]

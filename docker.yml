@@ -14,7 +14,7 @@ services:
     volumes:
       - clientes_data:/var/lib/mysql
       - ./ms-clientes/src/main/resources/bd-clientes.sql:/docker-entrypoint-initdb.d/init.sql
-    command: --default-authentication-plugin=caching_sha2_password # Restaurado
+    command: --default-authentication-plugin=caching_sha2_password # Comando restaurado
     ports:
       - "3306:3306"
     networks:
@@ -40,7 +40,7 @@ services:
     volumes:
       - logisticas_data:/var/lib/mysql
       - ./ms-logistica/src/main/resources/bd-logistica.sql:/docker-entrypoint-initdb.d/init.sql
-    command: --default-authentication-plugin=caching_sha2_password # Restaurado
+    command: --default-authentication-plugin=caching_sha2_password # Comando restaurado
     ports:
       - "3307:3306"
     networks:
@@ -66,7 +66,7 @@ services:
     volumes:
       - tarifas_data:/var/lib/mysql
       - ./ms-tarifas/src/main/resources/bd-tarifas.sql:/docker-entrypoint-initdb.d/init.sql
-    command: --default-authentication-plugin=caching_sha2_password # Restaurado
+    command: --default-authentication-plugin=caching_sha2_password # Comando restaurado
     ports:
       - "3308:3306"
     networks:
@@ -113,8 +113,10 @@ services:
       KC_HOSTNAME_STRICT: false
       KC_HOSTNAME_STRICT_HTTPS: false
       KC_HTTP_ENABLED: true
-      # CLAVE: Vuelve a la URL pública para restaurar el acceso al frontend.
-      KC_HOSTNAME_URL: http://localhost:8180
+      # CLAVE: Usamos el hostname interno de Docker para que el 'iss' del token coincida con el config de los MS
+      # Esto inhabilita el acceso directo al frontend de Keycloak desde el navegador, pero soluciona el JWT.
+      #KC_HOSTNAME_URL: http://localhost:8180
+      KC_HOSTNAME_URL: http://keycloak:8080
       KEYCLOAK_IMPORT: /opt/keycloak/data/import/logistica-realm.json
     ports:
       - "8180:8080"
@@ -148,10 +150,8 @@ services:
       SPRING_DATASOURCE_USERNAME: user
       SPRING_DATASOURCE_PASSWORD: userpass
       SERVER_PORT: 8081
-      # Acepta el 'iss' público del token
-      KEYCLOAK_ISSUER_URI: http://localhost:8180/realms/logistica-realm
-      # CLAVE: Usa el hostname interno para buscar las claves (JWKS)
-      KEYCLOAK_JWK_SET_URI: http://keycloak:8080/realms/logistica-realm/protocol/openid-connect/certs
+      # Ahora esto coincide con el 'iss' del token de Keycloak
+      KEYCLOAK_ISSUER_URI: http://keycloak:8080/realms/logistica-realm
     ports:
       - "8081:8081"
     networks:
@@ -186,10 +186,8 @@ services:
       SERVER_PORT: 8082
       MS_CLIENTES_URL: http://ms-clientes:8081/api/v0.1
       OSRM_BASE_URL: http://osrm:5000
-      # Acepta el 'iss' público del token
-      KEYCLOAK_ISSUER_URI: http://localhost:8180/realms/logistica-realm
-      # CLAVE: Usa el hostname interno para buscar las claves (JWKS)
-      KEYCLOAK_JWK_SET_URI: http://keycloak:8080/realms/logistica-realm/protocol/openid-connect/certs
+      # Ahora esto coincide con el 'iss' del token de Keycloak
+      KEYCLOAK_ISSUER_URI: http://keycloak:8080/realms/logistica-realm
     ports:
       - "8082:8082"
     networks:
@@ -221,10 +219,8 @@ services:
       SPRING_DATASOURCE_PASSWORD: userpass
       SERVER_PORT: 8083
       MS_LOGISTICA_URL: http://ms-logistica:8082/api/v0.1
-      # Acepta el 'iss' público del token
-      KEYCLOAK_ISSUER_URI: http://localhost:8180/realms/logistica-realm
-      # CLAVE: Usa el hostname interno para buscar las claves (JWKS)
-      KEYCLOAK_JWK_SET_URI: http://keycloak:8080/realms/logistica-realm/protocol/openid-connect/certs
+      # Ahora esto coincide con el 'iss' del token de Keycloak
+      KEYCLOAK_ISSUER_URI: http://keycloak:8080/realms/logistica-realm
     ports:
       - "8083:8083"
     networks:
@@ -254,9 +250,8 @@ services:
         condition: service_healthy
     environment:
       SERVER_PORT: 8080
-      # Acepta el 'iss' público del token
-      KEYCLOAK_ISSUER_URI: http://localhost:8180/realms/logistica-realm
-      # CLAVE: Usa el hostname interno para buscar las claves (JWKS)
+      # Ambos usan la URL interna. El Gateway puede alcanzar Keycloak directamente.
+      KEYCLOAK_ISSUER_URI: http://keycloak:8080/realms/logistica-realm
       KEYCLOAK_JWK_SET_URI: http://keycloak:8080/realms/logistica-realm/protocol/openid-connect/certs
       MS_CLIENTES_URL: http://ms-clientes:8081
       MS_LOGISTICA_URL: http://ms-logistica:8082

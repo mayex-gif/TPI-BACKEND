@@ -25,14 +25,17 @@ public class SecurityConfig {
                         // ENDPOINTS PÚBLICOS (sin autenticación)
                         // ==========================================
                         .pathMatchers("/actuator/**").permitAll()
-                        .pathMatchers("/api/v0.1/clientes/registro").permitAll() // Registro de clientes
 
                         // ==========================================
                         // ENDPOINTS POR ROL: CLIENTE
                         // ==========================================
+                        .pathMatchers("POST", "/api/v0.1/clientes").hasAnyRole("ADMINISTRADOR", "CLIENTE")
+                        .pathMatchers("GET", "/api/v0.1/clientes").hasAnyRole("ADMINISTRADOR", "CLIENTE")
+                        .pathMatchers("GET", "/api/v0.1/clientes/{id}").hasAnyRole("ADMINISTRADOR", "CLIENTE")
                         .pathMatchers("GET", "/api/v0.1/solicitudes/cliente/{idCliente}").hasRole("CLIENTE")
                         .pathMatchers("POST", "/api/v0.1/solicitudes").hasRole("CLIENTE")
                         .pathMatchers("GET", "/api/v0.1/solicitudes/{id}/estado-transporte").hasRole("CLIENTE")
+
 
                         // ==========================================
                         // ENDPOINTS POR ROL: OPERADOR

@@ -14,9 +14,9 @@ spring:
       resourceserver:
         jwt:
           # AHORA USA localhost:8180 EN CASO DE NO TENER LA VARIABLE DE ENTORNO
-          issuer-uri: ${KEYCLOAK_ISSUER_URI:http://localhost:8180/realms/logistica-realm}
+          issuer-uri: ${KEYCLOAK_ISSUER_URI} #:http://localhost:8180/realms/logistica-realm}
           # AHORA USA localhost:8180 EN CASO DE NO TENER LA VARIABLE DE ENTORNO
-          jwk-set-uri: ${KEYCLOAK_JWK_SET_URI:http://localhost:8180/realms/logistica-realm/protocol/openid-connect/certs}
+          jwk-set-uri: ${KEYCLOAK_JWK_SET_URI} #:http://localhost:8180/realms/logistica-realm/protocol/openid-connect/certs}
 
   # ========================================
   # CONFIGURACIÓN DE CLOUD GATEWAY
@@ -34,7 +34,7 @@ spring:
         # RUTA: MS-CLIENTES
         # ==========================================
         - id: ms-clientes
-          uri: ${MS_CLIENTES_URL:http://localhost:8081}
+          uri: ${MS_CLIENTES_URL} #:http://localhost:8081}
           predicates:
             - Path=/api/v0.1/clientes/**
           filters:
@@ -44,7 +44,7 @@ spring:
         # RUTA: MS-LOGISTICA
         # ==========================================
         - id: ms-logistica
-          uri: ${MS_LOGISTICA_URL:http://localhost:8082}
+          uri: ${MS_LOGISTICA_URL} #:http://localhost:8082}
           predicates:
             - Path=/api/v0.1/solicitudes/**,/api/v0.1/contenedores/**,/api/v0.1/tramos/**,/api/v0.1/rutas/**,/api/v0.1/camiones/**,/api/v0.1/depositos/**,/api/v0.1/estados/**
           filters:
@@ -54,7 +54,7 @@ spring:
         # RUTA: MS-TARIFAS
         # ==========================================
         - id: ms-tarifas
-          uri: ${MS_TARIFAS_URL:http://localhost:8083}
+          uri: ${MS_TARIFAS_URL} #:http://localhost:8083}
           predicates:
             - Path=/api/v0.1/tarifas/**
           filters:

@@ -1,6 +1,15 @@
 server:
   port: 8081 # Puerto del microservicio
 
+logging:
+  # Nivel de log por defecto para todos los paquetes (Info es un buen balance)
+  level:
+    root: INFO
+    # Silencia los logs de DEBUG en paquetes de Spring Security que son ruidosos para health checks
+    org.springframework.security: INFO
+    # Silencia los logs de DEBUG específicos de los matchers
+    org.springframework.security.web.server.util.matcher: INFO
+
 spring:
   application:
     name: ms-clientes
@@ -12,4 +21,5 @@ spring:
     oauth2:
       resourceserver:
         jwt:
-          issuer-uri: ${KEYCLOAK_ISSUER_URI:http://localhost:8180/realms/logistica-realm}
+          issuer-uri: ${KEYCLOAK_ISSUER_URI} #:http://localhost:8180/realms/logistica-realm}
+
