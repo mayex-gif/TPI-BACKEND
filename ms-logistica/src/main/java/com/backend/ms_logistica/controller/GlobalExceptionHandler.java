@@ -1,4 +1,4 @@
-package com.backend.ms_logistica.exception;
+package com.backend.ms_logistica.controller;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
