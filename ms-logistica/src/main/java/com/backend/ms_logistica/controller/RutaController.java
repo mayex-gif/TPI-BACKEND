@@ -10,7 +10,6 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/v0.1/rutas")
 public class RutaController {
-
     private final RutaService rutaService;
 
     public RutaController(RutaService rutaService) {
