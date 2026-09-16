@@ -1,81 +1,104 @@
 package com.backend.ms_logistica.model;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
 
-@Table
-@Entity(name = "CAMION")
+@Entity
+@Table(name = "CAMION")
 public class Camion {
+
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "DOMINIO")
-    private String dominio;
-    @Column(name = "NOMBRE_TRANSPORTISTA")
-    private String nombre_transportista;
-    @Column(name = "TELEFONO_TRANSPORTISTA")
-    private String telefono_transportista;
-    @Column(name = "CAPACIDAD_PESO")
-    private Double capacidad_peso;
-    @Column(name = "CAPACIDAD_VOLUMEN")
-    private Double capacidad_volumen;
-    @Column(name = "DISPONIBLE")
-    private Boolean disponible;
-    @Column(name = "COSTO_KM")
-    private Double costo_km;
-    @Column(name = "CONSUMO_PROMEDIO")
-    private Double consumo_promedio;
+    @NotBlank(message = "La patente es obligatoria")
+    @Column(name = "patente", length = 20)
+    private String patente;
 
-    public Camion() {
+    @NotBlank(message = "El nombre del transportista es obligatorio")
+    @Column(name = "nombre_transportista", nullable = false, length = 150)
+    private String nombreTransportista;
+
+    @Column(name = "telefono", length = 50)
+    private String telefono;
+
+    @NotNull(message = "La capacidad de peso es obligatoria")
+    @Positive(message = "La capacidad de peso debe ser positiva")
+    @Column(name = "capacidad_peso", nullable = false)
+    private Double capacidadPeso; // En kilogramos
+
+    @NotNull(message = "La capacidad de volumen es obligatoria")
+    @Positive(message = "La capacidad de volumen debe ser positiva")
+    @Column(name = "capacidad_volumen", nullable = false)
+    private Double capacidadVolumen; // En metros cúbicos
+
+    @NotNull
+    @Column(name = "disponible", nullable = false)
+    private Boolean disponible = true;
+
+    @NotNull(message = "El costo base por km es obligatorio")
+    @Positive(message = "El costo base debe ser positivo")
+    @Column(name = "costo_base_km", nullable = false)
+    private Double costoBaseKm;
+
+    @NotNull(message = "El consumo de combustible es obligatorio")
+    @Positive(message = "El consumo debe ser positivo")
+    @Column(name = "consumo_combustible", nullable = false)
+    private Double consumoCombustible; // litros/km
+
+    public Camion() {}
+
+    public Camion(String patente, String nombreTransportista, String telefono,
+                  Double capacidadPeso, Double capacidadVolumen,
+                  Double costoBaseKm, Double consumoCombustible) {
+        this.patente = patente;
+        this.nombreTransportista = nombreTransportista;
+        this.telefono = telefono;
+        this.capacidadPeso = capacidadPeso;
+        this.capacidadVolumen = capacidadVolumen;
+        this.costoBaseKm = costoBaseKm;
+        this.consumoCombustible = consumoCombustible;
+        this.disponible = true;
     }
 
-    public Camion(String dominio, String nombre_transportista, String telefono_transportista, Double capacidad_peso, Double capacidad_volumen, Boolean disponible, Double costo_km, Double consumo_promedio) {
-        this.dominio = dominio;
-        this.nombre_transportista = nombre_transportista;
-        this.telefono_transportista = telefono_transportista;
-        this.capacidad_peso = capacidad_peso;
-        this.capacidad_volumen = capacidad_volumen;
-        this.disponible = disponible;
-        this.costo_km = costo_km;
-        this.consumo_promedio = consumo_promedio;
+    // Getters y Setters
+    public String getPatente() {
+        return patente;
     }
 
-    public String getDominio() {
-        return dominio;
+    public void setPatente(String patente) {
+        this.patente = patente;
     }
 
-    public void setDominio(String dominio) {
-        this.dominio = dominio;
+    public String getNombreTransportista() {
+        return nombreTransportista;
     }
 
-    public String getNombre_transportista() {
-        return nombre_transportista;
+    public void setNombreTransportista(String nombreTransportista) {
+        this.nombreTransportista = nombreTransportista;
     }
 
-    public void setNombre_transportista(String nombre_transportista) {
-        this.nombre_transportista = nombre_transportista;
+    public String getTelefono() {
+        return telefono;
     }
 
-    public String getTelefono_transportista() {
-        return telefono_transportista;
+    public void setTelefono(String telefono) {
+        this.telefono = telefono;
     }
 
-    public void setTelefono_transportista(String telefono_transportista) {
-        this.telefono_transportista = telefono_transportista;
+    public Double getCapacidadPeso() {
+        return capacidadPeso;
     }
 
-    public Double getCapacidad_peso() {
-        return capacidad_peso;
+    public void setCapacidadPeso(Double capacidadPeso) {
+        this.capacidadPeso = capacidadPeso;
     }
 
-    public void setCapacidad_peso(Double capacidad_peso) {
-        this.capacidad_peso = capacidad_peso;
+    public Double getCapacidadVolumen() {
+        return capacidadVolumen;
     }
 
-    public Double getCapacidad_volumen() {
-        return capacidad_volumen;
-    }
-
-    public void setCapacidad_volumen(Double capacidad_volumen) {
-        this.capacidad_volumen = capacidad_volumen;
+    public void setCapacidadVolumen(Double capacidadVolumen) {
+        this.capacidadVolumen = capacidadVolumen;
     }
 
     public Boolean getDisponible() {
@@ -86,19 +109,79 @@ public class Camion {
         this.disponible = disponible;
     }
 
-    public Double getCosto_km() {
-        return costo_km;
+    public Double getCostoBaseKm() {
+        return costoBaseKm;
     }
 
-    public void setCosto_km(Double costo_km) {
-        this.costo_km = costo_km;
+    public void setCostoBaseKm(Double costoBaseKm) {
+        this.costoBaseKm = costoBaseKm;
     }
 
-    public Double getConsumo_promedio() {
-        return consumo_promedio;
+    public Double getConsumoCombustible() {
+        return consumoCombustible;
     }
 
-    public void setConsumo_promedio(Double consumo_promedio) {
-        this.consumo_promedio = consumo_promedio;
+    public void setConsumoCombustible(Double consumoCombustible) {
+        this.consumoCombustible = consumoCombustible;
+    }
+
+    // ======================================
+    // Métodos de negocio
+    // ======================================
+
+    /**
+     * Verifica si el camión puede transportar un contenedor
+     * basado en peso y volumen
+     */
+    public boolean puedeTransportar(Double pesoContenedor, Double volumenContenedor) {
+        if (pesoContenedor == null || volumenContenedor == null) {
+            return false;
+        }
+        return pesoContenedor <= this.capacidadPeso &&
+                volumenContenedor <= this.capacidadVolumen;
+    }
+
+    /**
+     * Calcula el costo de un tramo basado en distancia
+     * Considera: costo base por km
+     */
+    public Double calcularCostoTramo(Double distanciaKm) {
+        if (distanciaKm == null || distanciaKm <= 0) {
+            return 0.0;
+        }
+        return costoBaseKm * distanciaKm;
+    }
+
+    /**
+     * Calcula el consumo de combustible para una distancia
+     */
+    public Double calcularConsumoCombustible(Double distanciaKm) {
+        if (distanciaKm == null || distanciaKm <= 0) {
+            return 0.0;
+        }
+        return consumoCombustible * distanciaKm;
+    }
+
+    /**
+     * Marca el camión como ocupado
+     */
+    public void ocupar() {
+        this.disponible = false;
+    }
+
+    /**
+     * Marca el camión como disponible
+     */
+    public void liberar() {
+        this.disponible = true;
+    }
+
+    @Override
+    public String toString() {
+        return "Camion{" +
+                "patente='" + patente + '\'' +
+                ", nombreTransportista='" + nombreTransportista + '\'' +
+                ", disponible=" + disponible +
+                '}';
     }
 }

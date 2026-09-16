@@ -1,0 +1,85 @@
+{
+  "id": "logistica-realm",
+  "realm": "logistica-realm",
+  "displayName": "Sistema de Logística Mínimo",
+  "enabled": true,
+  "sslRequired": "none",
+  "roles": {
+    "realm": [
+      {
+        "name": "CLIENTE",
+        "description": "Usuario cliente que solicita transportes",
+        "composite": false
+      },
+      {
+        "name": "OPERADOR",
+        "description": "Operador que gestiona solicitudes y asignaciones",
+        "composite": false
+      },
+      {
+        "name": "TRANSPORTISTA",
+        "description": "Transportista que ejecuta los traslados",
+        "composite": false
+      },
+      {
+        "name": "ADMINISTRADOR",
+        "description": "Administrador del sistema",
+        "composite": false
+      }
+    ]
+  },
+  "clients": [
+    {
+      "clientId": "logistica-client",
+      "name": "Cliente de Acceso Directo",
+      "enabled": true,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "logistica-secret-123",
+      "redirectUris": [
+        "*"
+      ],
+      "webOrigins": [
+        "*"
+      ],
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "directAccessGrantsEnabled": true,
+      "bearerOnly": false,
+      "standardFlowEnabled": true
+    }
+  ],
+  "users": [
+    {
+      "username": "cliente1",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "Juan",
+      "lastName": "Pérez",
+      "email": "cliente1@test.com",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "password123",
+          "temporary": false
+        }
+      ],
+      "realmRoles": ["CLIENTE"]
+    },
+    {
+      "username": "Admin",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "Admin",
+      "lastName": "Admin",
+      "email": "admin@test.com",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "admin123",
+          "temporary": false
+        }
+      ],
+      "realmRoles": ["ADMINISTRADOR"]
+    }
+  ]
+}

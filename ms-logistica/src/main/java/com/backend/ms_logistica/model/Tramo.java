@@ -1,108 +1,131 @@
 package com.backend.ms_logistica.model;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
-
-import java.util.Date;
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "TRAMO")
 public class Tramo {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "ID_TRAMO")
-    private Integer id_tramo;
-    @Column(name = "DISTANCIA_KM")
-    private Double distance_km;
-    @Column(name = "COSTO_APROXIMADO")
-    private Double costo_aproximado;
-    @Column(name = "COSTO_REAL")
-    private Double costo_real;
-    @Column(name = "FECHA_HORA_INICIO")
-    private Date fecha_hora_inicio;
-    @Column(name = "FECHA_HORA_FIN")
-    private Date fecha_hora_fin;
-    @ManyToOne
-    @JoinColumn(name = "ID_RUTA")
+    @Column(name = "id_tramo")
+    private Integer idTramo;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "id_ruta", nullable = false)
+    @JsonBackReference
     private Ruta ruta;
-    @ManyToOne
-    @JoinColumn(name = "DOMINIO")
-    private Camion camion;
-    @ManyToOne
-    @JoinColumn(name = "ID_TIPOTRAMO")
-    private TipoTramo tipo_tramo;
-    @ManyToOne
-    @JoinColumn(name = "ID_ORIGEN")
-    private Ciudad origen;
-    @ManyToOne
-    @JoinColumn(name = "ID_DESTINO")
-    private Ciudad destino;
-    @ManyToOne
-    @JoinColumn(name = "ID_ESTADO")
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "tipo_tramo", nullable = false)
+    private TipoTramo tipoTramo;
+
+    // Depósitos opcionales según tipo de tramo
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "id_deposito_inicio")
+    private Deposito depositoInicio;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "id_deposito_fin")
+    private Deposito depositoFin;
+
+    // Coordenadas alternativas (cuando no hay depósito)
+    @Column(name = "inicio_lat")
+    private Double inicioLat;
+
+    @Column(name = "inicio_lon")
+    private Double inicioLon;
+
+    @Column(name = "fin_lat")
+    private Double finLat;
+
+    @Column(name = "fin_lon")
+    private Double finLon;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "id_estado", nullable = false)
     private Estado estado;
 
-    public Tramo() {
+    @Column(name = "distancia_km")
+    private Double distanciaKm;
+
+    @Column(name = "tiempo_estimado")
+    private Double tiempoEstimado; // En horas
+
+    @Column(name = "costo_estimado")
+    private Double costoEstimado;
+
+    @Column(name = "costo_real")
+    private Double costoReal;
+
+    @Column(name = "fecha_hora_inicio")
+    private LocalDateTime fechaHoraInicio;
+
+    @Column(name = "fecha_hora_fin")
+    private LocalDateTime fechaHoraFin;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "patente_camion")
+    private Camion camion;
+
+    public Tramo() {}
+
+    // ======================================
+    // Métodos auxiliares para coordenadas
+    // ======================================
+
+    /**
+     * Obtiene la latitud de inicio, priorizando depósito si existe
+     */
+    public Double getLatitudInicio() {
+        if (depositoInicio != null) {
+            return depositoInicio.getLatitud();
+        }
+        return inicioLat;
     }
 
-    public Tramo(Double distance_km, Double costo_aproximado, Double costo_real, Date fecha_hora_inicio, Date fecha_hora_fin, Ruta ruta, Camion camion, TipoTramo tipo_tramo, Ciudad origen, Ciudad destino, Estado estado) {
-        this.distance_km = distance_km;
-        this.costo_aproximado = costo_aproximado;
-        this.costo_real = costo_real;
-        this.fecha_hora_inicio = fecha_hora_inicio;
-        this.fecha_hora_fin = fecha_hora_fin;
-        this.ruta = ruta;
-        this.camion = camion;
-        this.tipo_tramo = tipo_tramo;
-        this.origen = origen;
-        this.destino = destino;
-        this.estado = estado;
+    /**
+     * Obtiene la longitud de inicio, priorizando depósito si existe
+     */
+    public Double getLongitudInicio() {
+        if (depositoInicio != null) {
+            return depositoInicio.getLongitud();
+        }
+        return inicioLon;
     }
 
-    public Integer getId_tramo() {
-        return id_tramo;
+    /**
+     * Obtiene la latitud de fin, priorizando depósito si existe
+     */
+    public Double getLatitudFin() {
+        if (depositoFin != null) {
+            return depositoFin.getLatitud();
+        }
+        return finLat;
     }
 
-    public void setId_tramo(Integer id_tramo) {
-        this.id_tramo = id_tramo;
+    /**
+     * Obtiene la longitud de fin, priorizando depósito si existe
+     */
+    public Double getLongitudFin() {
+        if (depositoFin != null) {
+            return depositoFin.getLongitud();
+        }
+        return finLon;
     }
 
-    public Double getDistance_km() {
-        return distance_km;
+    // ======================================
+    // Getters y Setters
+    // ======================================
+
+    public Integer getIdTramo() {
+        return idTramo;
     }
 
-    public void setDistance_km(Double distance_km) {
-        this.distance_km = distance_km;
-    }
-
-    public Double getCosto_aproximado() {
-        return costo_aproximado;
-    }
-
-    public void setCosto_aproximado(Double costo_aproximado) {
-        this.costo_aproximado = costo_aproximado;
-    }
-
-    public Double getCosto_real() {
-        return costo_real;
-    }
-
-    public void setCosto_real(Double costo_real) {
-        this.costo_real = costo_real;
-    }
-
-    public Date getFecha_hora_inicio() {
-        return fecha_hora_inicio;
-    }
-
-    public void setFecha_hora_inicio(Date fecha_hora_inicio) {
-        this.fecha_hora_inicio = fecha_hora_inicio;
-    }
-
-    public Date getFecha_hora_fin() {
-        return fecha_hora_fin;
-    }
-
-    public void setFecha_hora_fin(Date fecha_hora_fin) {
-        this.fecha_hora_fin = fecha_hora_fin;
+    public void setIdTramo(Integer idTramo) {
+        this.idTramo = idTramo;
     }
 
     public Ruta getRuta() {
@@ -113,36 +136,60 @@ public class Tramo {
         this.ruta = ruta;
     }
 
-    public Camion getCamion() {
-        return camion;
+    public TipoTramo getTipoTramo() {
+        return tipoTramo;
     }
 
-    public void setCamion(Camion camion) {
-        this.camion = camion;
+    public void setTipoTramo(TipoTramo tipoTramo) {
+        this.tipoTramo = tipoTramo;
     }
 
-    public TipoTramo getTipo_tramo() {
-        return tipo_tramo;
+    public Deposito getDepositoInicio() {
+        return depositoInicio;
     }
 
-    public void setTipo_tramo(TipoTramo tipo_tramo) {
-        this.tipo_tramo = tipo_tramo;
+    public void setDepositoInicio(Deposito depositoInicio) {
+        this.depositoInicio = depositoInicio;
     }
 
-    public Ciudad getOrigen() {
-        return origen;
+    public Deposito getDepositoFin() {
+        return depositoFin;
     }
 
-    public void setOrigen(Ciudad origen) {
-        this.origen = origen;
+    public void setDepositoFin(Deposito depositoFin) {
+        this.depositoFin = depositoFin;
     }
 
-    public Ciudad getDestino() {
-        return destino;
+    public Double getInicioLat() {
+        return inicioLat;
     }
 
-    public void setDestino(Ciudad destino) {
-        this.destino = destino;
+    public void setInicioLat(Double inicioLat) {
+        this.inicioLat = inicioLat;
+    }
+
+    public Double getInicioLon() {
+        return inicioLon;
+    }
+
+    public void setInicioLon(Double inicioLon) {
+        this.inicioLon = inicioLon;
+    }
+
+    public Double getFinLat() {
+        return finLat;
+    }
+
+    public void setFinLat(Double finLat) {
+        this.finLat = finLat;
+    }
+
+    public Double getFinLon() {
+        return finLon;
+    }
+
+    public void setFinLon(Double finLon) {
+        this.finLon = finLon;
     }
 
     public Estado getEstado() {
@@ -151,5 +198,61 @@ public class Tramo {
 
     public void setEstado(Estado estado) {
         this.estado = estado;
+    }
+
+    public Double getDistanciaKm() {
+        return distanciaKm;
+    }
+
+    public void setDistanciaKm(Double distanciaKm) {
+        this.distanciaKm = distanciaKm;
+    }
+
+    public Double getTiempoEstimado() {
+        return tiempoEstimado;
+    }
+
+    public void setTiempoEstimado(Double tiempoEstimado) {
+        this.tiempoEstimado = tiempoEstimado;
+    }
+
+    public Double getCostoEstimado() {
+        return costoEstimado;
+    }
+
+    public void setCostoEstimado(Double costoEstimado) {
+        this.costoEstimado = costoEstimado;
+    }
+
+    public Double getCostoReal() {
+        return costoReal;
+    }
+
+    public void setCostoReal(Double costoReal) {
+        this.costoReal = costoReal;
+    }
+
+    public LocalDateTime getFechaHoraInicio() {
+        return fechaHoraInicio;
+    }
+
+    public void setFechaHoraInicio(LocalDateTime fechaHoraInicio) {
+        this.fechaHoraInicio = fechaHoraInicio;
+    }
+
+    public LocalDateTime getFechaHoraFin() {
+        return fechaHoraFin;
+    }
+
+    public void setFechaHoraFin(LocalDateTime fechaHoraFin) {
+        this.fechaHoraFin = fechaHoraFin;
+    }
+
+    public Camion getCamion() {
+        return camion;
+    }
+
+    public void setCamion(Camion camion) {
+        this.camion = camion;
     }
 }

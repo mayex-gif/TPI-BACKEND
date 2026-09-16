@@ -1,0 +1,29 @@
+USE bd_tarifas;
+
+-- ==========================
+-- TABLA TARIFA
+-- ==========================
+CREATE TABLE IF NOT EXISTS TARIFA (
+    ID_TARIFA INT AUTO_INCREMENT PRIMARY KEY,
+    PRECIO_BASE DECIMAL(10,2) NOT NULL,
+    COSTO_POR_KM DECIMAL(10,2) NOT NULL
+    );
+
+-- Inserts básicos
+INSERT INTO TARIFA (PRECIO_BASE, COSTO_POR_KM) VALUES
+    (1000.00, 150.00),
+    (800.00, 120.00);
+
+
+-- ==========================
+-- TABLA COTIZACION
+-- ==========================
+CREATE TABLE IF NOT EXISTS COTIZACION (
+    ID_COTIZACION INT AUTO_INCREMENT PRIMARY KEY,
+    COSTO_CALCULADO DECIMAL(10,2) NOT NULL
+    );
+
+-- Inserts básicos
+INSERT INTO COTIZACION (COSTO_CALCULADO) VALUES
+    (3500.00),
+    (7200.00);

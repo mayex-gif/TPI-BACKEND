@@ -1,0 +1,29 @@
+server:
+  port: 8083 # El puerto específico del microservicio
+
+# ========================================
+# CONFIGURACIÓN DE BASE DE DATOS (MOCK)
+# ========================================
+# Las propiedades de la base de datos deben estar definidas aquí
+# para la ejecución local si no usas variables de entorno.
+# Ejemplo:
+# datasource:
+#   url: jdbc:mysql://localhost:3306/bd_clientes
+#   username: user
+#   password: userpass
+
+spring:
+  application:
+    name: ms-tarifas
+
+  # ==================================
+  # CONFIGURACIÓN DE SEGURIDAD (KEYCLOAK)
+  # ==================================
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          # Si la variable KEYCLOAK_ISSUER_URI NO está definida (ejecución local),
+          # usa la URL de Keycloak expuesta en localhost:8180.
+          # Si la variable está definida (ejecución en Docker), usa el valor de la variable.
+          issuer-uri: ${KEYCLOAK_ISSUER_URI:http://localhost:8180/realms/logistica-realm}

@@ -3,82 +3,73 @@ package com.backend.ms_clientes.controller;
 import com.backend.ms_clientes.dto.ClienteDTO;
 import com.backend.ms_clientes.model.Cliente;
 import com.backend.ms_clientes.service.ClienteService;
+import jakarta.validation.Valid;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
+//@CrossOrigin(origins = "*")
 @RestController
 @RequestMapping("/api/v0.1/clientes")
 public class ClienteController {
 
-    private final ClienteService clienteService;
+    @Autowired
+    private ClienteService clienteService;
 
-    public ClienteController(ClienteService clienteService) {
-        this.clienteService = clienteService;
-    }
-
+    // Listar: Requiere ADMINISTRADOR o CLIENTE
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR','CLIENTE')")
     @GetMapping
-    public ResponseEntity<List<ClienteDTO>> listarTodos() {
-        List<ClienteDTO> dtos = clienteService.listarTodos()
-                .stream()
-                .map(this::toDTO)
-                .collect(Collectors.toList());
-        return ResponseEntity.ok(dtos);
+    public ResponseEntity<List<ClienteDTO>> listar() {
+        // Asume que clienteService::toDTO es un método estático o accesible que convierte Cliente a ClienteDTO.
+        List<ClienteDTO> clientes = clienteService.listar().stream()
+                .map(ClienteService::toDTO)
+                .toList();
+        return ResponseEntity.ok(clientes);
     }
 
+    // Buscar: Requiere ADMINISTRADOR o CLIENTE
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'CLIENTE')")
     @GetMapping("/{id}")
-    public ResponseEntity<ClienteDTO> obtenerPorId(@PathVariable Integer id) {
-        Cliente cliente = clienteService.obtenerPorId(id);
-        if (cliente == null) return ResponseEntity.notFound().build();
-        return ResponseEntity.ok(toDTO(cliente));
+    public ResponseEntity<ClienteDTO> buscar(@PathVariable Integer id) {
+        Cliente c = clienteService.buscar(id);
+        return ResponseEntity.ok(ClienteService.toDTO(c));
     }
 
+    /**
+     * Crea un nuevo cliente. Este endpoint suele ser público para auto-registro,
+     * pero la seguridad de la aplicación lo define. Asume que el servicio
+     * maneja la creación de usuario en Keycloak y la asignación del rol 'CLIENTE'.
+     *
+     * @param clienteDTO Los datos del nuevo cliente.
+     * @return El ClienteDTO guardado.
+     */
     @PostMapping
-    public ResponseEntity<ClienteDTO> crear(@RequestBody ClienteDTO dto) {
-        Cliente cliente = toEntity(dto);
-        Cliente guardado = clienteService.guardar(cliente);
-        return ResponseEntity.ok(toDTO(guardado));
+    public ResponseEntity<ClienteDTO> crearCliente(@Valid @RequestBody ClienteDTO clienteDTO) {
+        // La llamada correcta es usar el DTO para permitir que el servicio:
+        // 1. Cree usuario en Keycloak y asigne rol 'CLIENTE'.
+        // 2. Guarde la entidad en la DB.
+        ClienteDTO guardado = clienteService.crear(clienteDTO);
+        return ResponseEntity.ok(guardado);
     }
 
+    // Actualizar: Requiere ADMINISTRADOR
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR')")
     @PutMapping("/{id}")
-    public ResponseEntity<ClienteDTO> actualizar(@PathVariable Integer id, @RequestBody ClienteDTO dto) {
-        Cliente existente = clienteService.obtenerPorId(id);
-        if (existente == null) return ResponseEntity.notFound().build();
-
-        existente.setNombre(dto.getNombre());
-        existente.setApellido(dto.getApellido());
-        existente.setEmail(dto.getEmail());
-        existente.setTelefono(dto.getTelefono());
-
-        Cliente actualizado = clienteService.guardar(existente);
-        return ResponseEntity.ok(toDTO(actualizado));
+    public ResponseEntity<ClienteDTO> actualizar(@PathVariable Integer id,
+                                                 @Valid @RequestBody ClienteDTO clienteDTO) {
+        Cliente c = ClienteService.toEntity(clienteDTO);
+        Cliente actualizado = clienteService.actualizar(id, c);
+        return ResponseEntity.ok(ClienteService.toDTO(actualizado));
     }
 
+    // Eliminar: Requiere ADMINISTRADOR
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR')")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> eliminar(@PathVariable Integer id) {
         clienteService.eliminar(id);
         return ResponseEntity.noContent().build();
     }
-
-    private ClienteDTO toDTO(Cliente c) {
-        ClienteDTO dto = new ClienteDTO();
-        dto.setId(c.getId_cliente());
-        dto.setNombre(c.getNombre());
-        dto.setApellido(c.getApellido());
-        dto.setEmail(c.getEmail());
-        dto.setTelefono(c.getTelefono());
-        return dto;
-    }
-
-    private Cliente toEntity(ClienteDTO dto) {
-        Cliente c = new Cliente();
-        c.setNombre(dto.getNombre());
-        c.setApellido(dto.getApellido());
-        c.setEmail(dto.getEmail());
-        c.setTelefono(dto.getTelefono());
-        return c;
-    }
 }
-

@@ -1,49 +1,55 @@
 package com.backend.ms_logistica.dto;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class RutaDTO {
-    private Integer id_ruta;
-    private int cantidad_tramos;
-    private int cantidad_depositos;
-    private Double distance_total;
-    private Integer id_solicitud;
 
-    public int getCantidad_tramos() {
-        return cantidad_tramos;
+    private Integer idRuta;
+    private Integer idSolicitud;
+    private List<TramoDTO> tramos = new ArrayList<>();
+
+    // Campos calculados
+    private Integer cantidadTramos;
+    private Long cantidadDepositos;
+    private Double distanciaTotal;
+    private Double costoEstimadoTotal;
+
+    // Constructores
+    public RutaDTO() {}
+
+    public RutaDTO(Integer idRuta, Integer idSolicitud) {
+        this.idRuta = idRuta;
+        this.idSolicitud = idSolicitud;
     }
 
-    public void setCantidad_tramos(int cantidad_tramos) {
-        this.cantidad_tramos = cantidad_tramos;
+    // Getters y Setters
+    public Integer getIdRuta() { return idRuta; }
+    public void setIdRuta(Integer idRuta) { this.idRuta = idRuta; }
+
+    public Integer getIdSolicitud() { return idSolicitud; }
+    public void setIdSolicitud(Integer idSolicitud) { this.idSolicitud = idSolicitud; }
+
+    public List<TramoDTO> getTramos() { return tramos; }
+    public void setTramos(List<TramoDTO> tramos) { this.tramos = tramos; }
+
+    public Integer getCantidadTramos() { return cantidadTramos; }
+    public void setCantidadTramos(Integer cantidadTramos) {
+        this.cantidadTramos = cantidadTramos;
     }
 
-    public int getCantidad_depositos() {
-        return cantidad_depositos;
+    public Long getCantidadDepositos() { return cantidadDepositos; }
+    public void setCantidadDepositos(Long cantidadDepositos) {
+        this.cantidadDepositos = cantidadDepositos;
     }
 
-    public void setCantidad_depositos(int cantidad_depositos) {
-        this.cantidad_depositos = cantidad_depositos;
+    public Double getDistanciaTotal() { return distanciaTotal; }
+    public void setDistanciaTotal(Double distanciaTotal) {
+        this.distanciaTotal = distanciaTotal;
     }
 
-    public Double getDistance_total() {
-        return distance_total;
-    }
-
-    public void setDistance_total(Double distance_total) {
-        this.distance_total = distance_total;
-    }
-
-    public Integer getId_solicitud() {
-        return id_solicitud;
-    }
-
-    public void setId_solicitud(Integer id_solicitud) {
-        this.id_solicitud = id_solicitud;
-    }
-
-    public Integer getId_ruta() {
-        return id_ruta;
-    }
-
-    public void setId_ruta(Integer id_ruta) {
-        this.id_ruta = id_ruta;
+    public Double getCostoEstimadoTotal() { return costoEstimadoTotal; }
+    public void setCostoEstimadoTotal(Double costoEstimadoTotal) {
+        this.costoEstimadoTotal = costoEstimadoTotal;
     }
 }

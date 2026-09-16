@@ -1,76 +1,75 @@
 package com.backend.ms_clientes.model;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.Size;
 
-import java.util.List;
+import java.time.LocalDateTime;
 
-@Table
-@Entity(name = "CLIENTE")
+@Entity
+@Table(name = "CLIENTE")
 public class Cliente {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "ID_CLIENTE")
-    private Integer id_cliente;
+    private Integer idCliente;
+
+    // --- NUEVO CAMPO: ID de Keycloak ---
+    @Column(name = "KEYCLOAK_ID", unique = true)
+    private String keycloakId;
+    // ------------------------------------
 
     @Column(name = "NOMBRE")
     private String nombre;
-
     @Column(name = "APELLIDO")
     private String apellido;
-
-    @Column(name = "EMAIL")
+    @Column(name = "DNI",unique = true, nullable = false)
+    private Long dni;
+    @Column(name = "TELEFONO")
+    private String telefono;
+    @Column(name = "EMAIL",unique = true)
     private String email;
-
-    @Column(name = "TELEFONO", length = 20)
-    private String telefono ;
-
-    @OneToMany(mappedBy = "cliente", cascade = CascadeType.ALL)
-    private List<Contenedor> contenedores;
-
-    @OneToMany(mappedBy = "cliente", cascade = CascadeType.ALL)
-    private List<Solicitud> solicitudes;
+    @Column(name = "FECHA_REGISTRO")
+    private LocalDateTime fechaRegistro;
 
     public Cliente() {}
-    public Cliente(String nombre, String apellido, String email, String telefono) {
+
+    public Cliente(String nombre, String apellido, Long dni, String telefono, String email) {
         this.nombre = nombre;
         this.apellido = apellido;
-        this.email = email;
+        this.dni = dni;
         this.telefono = telefono;
-    }
-
-    public Integer getId_cliente() {
-        return id_cliente;
-    }
-
-    public String getNombre() {
-        return nombre;
-    }
-
-    public String getApellido() {
-        return apellido;
-    }
-
-    public String getEmail() {
-        return email;
-    }
-
-    public String getTelefono() {
-        return telefono;
-    }
-
-    public void setNombre(String nombre) {
-        this.nombre = nombre;
-    }
-
-    public void setApellido(String apellido) {
-        this.apellido = apellido;
-    }
-
-    public void setEmail(String email) {
         this.email = email;
     }
 
-    public void setTelefono(String telefono) {
-        this.telefono = telefono;
+    @PrePersist
+    public void prePersist() {
+        this.fechaRegistro = LocalDateTime.now();
     }
+
+    public Integer getIdCliente() { return idCliente; }
+    public void setIdCliente(Integer idCliente) { this.idCliente = idCliente; }
+
+    // --- GETTER Y SETTER PARA KEYCLOAK_ID ---
+    public String getKeycloakId() { return keycloakId; }
+    public void setKeycloakId(String keycloakId) { this.keycloakId = keycloakId; }
+    // ------------------------------------------
+
+    public String getNombre() { return nombre; }
+    public void setNombre(String nombre) { this.nombre = nombre; }
+
+    public String getApellido() { return apellido; }
+    public void setApellido(String apellido) { this.apellido = apellido; }
+
+    public Long getDni() { return dni; }
+    public void setDni(Long dni) { this.dni = dni; }
+
+    public String getTelefono() { return telefono; }
+    public void setTelefono(String telefono) { this.telefono = telefono; }
+
+    public String getEmail() { return email; }
+    public void setEmail(String email) { this.email = email; }
+
+    public LocalDateTime getFechaRegistro() { return fechaRegistro; }
+    public void setFechaRegistro(LocalDateTime fechaRegistro) { this.fechaRegistro = fechaRegistro; }
 }
